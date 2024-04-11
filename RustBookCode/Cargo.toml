@@ -2,7 +2,7 @@
 name = "rust_book_code"
 version = "0.1.0"
 edition = "2021"
-authors = ["Nathan Moes <moes@pdx.edu>"]
+authors = ["Nathan Moes <moes@pdx.edu>", "Bastian Gruber"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
