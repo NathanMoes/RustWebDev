@@ -1,5 +1,6 @@
 use axum::http::header::CONTENT_TYPE;
 use axum::http::HeaderValue;
+use axum::routing::{delete, put};
 use axum::Json;
 use axum::{
     extract::State,
@@ -10,7 +11,7 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -43,7 +44,7 @@ async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
 ) -> impl IntoResponse {
-    state.questions.lock().unwrap().insert(question);
+    state.questions.lock().unwrap().insert(question.id.clone(), question);
     Response::builder()
         .status(StatusCode::OK)
         .body("Question added".to_string())
@@ -57,11 +58,11 @@ async fn post_question(
 
 #[derive(Clone)]
 struct AppState {
-    questions: Arc<Mutex<HashSet<Question>>>,
+    questions: Arc<Mutex<HashMap<QuestionId, Question>>>,
 }
 
 impl AppState {
-    fn new(questions: HashSet<Question>) -> Self {
+    fn new(questions: HashMap<QuestionId, Question>) -> Self {
         AppState {
             questions: Arc::new(Mutex::new(questions)),
         }
@@ -131,11 +132,14 @@ async fn main() {
             Some(vec!["axum".to_string(), "web".to_string()]),
         ),
     ];
-    let state = AppState::new(questions.into_iter().collect());
+    let state = AppState::new(questions.into_iter().map(|item| (item.id.clone(), item)).collect());
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/questions", get(get_questions).with_state(state.clone()))
         .route("/questions", post(post_question).with_state(state))
+        .route("/questions/:id", put(handle_not_found))
+        .route("/questions/:id", delete(handle_not_found))
+        .route("/answers", post(handle_not_found))
         .layer(cors)
         .fallback(handle_not_found);
 
