@@ -14,9 +14,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use std::usize;
+use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -53,8 +54,8 @@ async fn post_question(
 ) -> impl IntoResponse {
     state
         .questions
-        .lock()
-        .unwrap()
+        .write()
+        .await
         .insert(question.id.clone(), question);
     Response::builder()
         .status(StatusCode::OK)
@@ -99,13 +100,13 @@ impl std::fmt::Display for ApiError {
 
 #[derive(Clone)]
 struct AppState {
-    questions: Arc<Mutex<HashMap<QuestionId, Question>>>,
+    questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
 }
 
 impl AppState {
     fn new() -> Self {
         AppState {
-            questions: Arc::new(Mutex::new(self::AppState::init())),
+            questions: Arc::new(RwLock::new(self::AppState::init())),
         }
     }
 
@@ -119,14 +120,14 @@ impl AppState {
         questions
     }
 
-    fn get_question(&self, id: &QuestionId) -> Option<Question> {
-        self.questions.lock().unwrap().get(id).cloned()
+    async fn get_question(&self, id: &QuestionId) -> Option<Question> {
+        self.questions.read().await.get(id).cloned()
     }
 
-    fn add_question(self, question: Question) -> Self {
+    async fn add_question(self, question: Question) -> Self {
         self.questions
-            .lock()
-            .unwrap()
+            .write()
+            .await
             .insert(question.id.clone(), question);
         self
     }
@@ -148,13 +149,13 @@ async fn get_questions(
     Query(Pagination { start, end }): Query<Pagination>,
 ) -> impl IntoResponse {
     if start.is_none() && end.is_none() {
-        let questions = state.questions.lock().unwrap();
+        let questions = state.questions.read().await;
         Response::builder()
             .status(StatusCode::OK)
             .body(serde_json::to_string_pretty(&questions.clone()).unwrap())
             .unwrap()
     } else {
-        let questions = state.questions.lock().unwrap();
+        let questions = state.questions.read().await;
         let mut result = HashMap::new();
         let start_index;
         let end_index;
