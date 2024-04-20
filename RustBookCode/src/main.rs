@@ -3,7 +3,7 @@ use axum::http::HeaderValue;
 use axum::routing::{delete, put};
 use axum::Json;
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
@@ -16,6 +16,7 @@ use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::usize;
 use tower_http::cors::CorsLayer;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -24,6 +25,12 @@ struct Question {
     title: String,
     content: String,
     tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Pagination {
+    start: Option<QuestionId>,
+    end: Option<QuestionId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -60,6 +67,36 @@ async fn post_question(
         })
 }
 
+#[derive(Debug)]
+enum ApiError {
+    ParseError(std::num::ParseIntError),
+    MissingParameters,
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        match self {
+            ApiError::ParseError(_) => Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body("Cannot parse parameter".into())
+                .unwrap(),
+            ApiError::MissingParameters => Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body("Missing parameter".into())
+                .unwrap(),
+        }
+    }
+}
+
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ApiError::ParseError(e) => write!(f, "Cannot parse parameter: {}", e),
+            ApiError::MissingParameters => write!(f, "Missing parameter"),
+        }
+    }
+}
+
 #[derive(Clone)]
 struct AppState {
     questions: Arc<Mutex<HashMap<QuestionId, Question>>>,
@@ -74,10 +111,12 @@ impl AppState {
 
     fn init() -> HashMap<QuestionId, Question> {
         let file = include_str!("../questions.json");
-        let questions: HashMap<QuestionId, Question> = serde_json::from_str::<HashMap<QuestionId, Question>>(file)
-            .unwrap()
-            .into_iter().collect();
-        HashMap::from(questions)
+        let questions: HashMap<QuestionId, Question> =
+            serde_json::from_str::<HashMap<QuestionId, Question>>(file)
+                .unwrap()
+                .into_iter()
+                .collect();
+        questions
     }
 
     fn get_question(&self, id: &QuestionId) -> Option<Question> {
@@ -104,9 +143,73 @@ impl Clone for Question {
     }
 }
 
-async fn get_questions(State(state): State<AppState>) -> String {
-    let questions = state.questions.lock().unwrap();
-    serde_json::to_string_pretty(&questions.clone()).unwrap()
+async fn get_questions(
+    State(state): State<AppState>,
+    Query(Pagination { start, end }): Query<Pagination>,
+) -> impl IntoResponse {
+    if start.is_none() && end.is_none() {
+        let questions = state.questions.lock().unwrap();
+        Response::builder()
+            .status(StatusCode::OK)
+            .body(serde_json::to_string_pretty(&questions.clone()).unwrap())
+            .unwrap()
+    } else {
+        let questions = state.questions.lock().unwrap();
+        let mut result = HashMap::new();
+        let start_index;
+        let end_index;
+        match start {
+            Some(s) => match s.0.parse::<usize>().map_err(ApiError::ParseError) {
+                Ok(index) => start_index = index,
+                Err(e) => {
+                    return Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .body(e.to_string())
+                        .unwrap();
+                }
+            },
+            None => {
+                return Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(ApiError::MissingParameters.to_string())
+                    .unwrap();
+            }
+        }
+        match end {
+            Some(_) => {
+                match end
+                    .unwrap()
+                    .0
+                    .parse::<usize>()
+                    .map_err(ApiError::ParseError)
+                {
+                    Ok(index) => end_index = index,
+                    Err(e) => {
+                        return Response::builder()
+                            .status(StatusCode::BAD_REQUEST)
+                            .body(e.to_string())
+                            .unwrap();
+                    }
+                }
+            }
+            None => {
+                return Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(ApiError::MissingParameters.to_string())
+                    .unwrap();
+            }
+        }
+        for (id, question) in questions.iter() {
+            let id_index = id.0.parse::<usize>().unwrap();
+            if id_index >= start_index && id_index <= end_index {
+                result.insert(id.clone(), question.clone());
+            }
+        }
+        Response::builder()
+            .status(StatusCode::OK)
+            .body(serde_json::to_string_pretty(&result).unwrap())
+            .unwrap()
+    }
 }
 
 impl FromStr for QuestionId {
