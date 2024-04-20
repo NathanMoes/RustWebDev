@@ -44,7 +44,11 @@ async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
 ) -> impl IntoResponse {
-    state.questions.lock().unwrap().insert(question.id.clone(), question);
+    state
+        .questions
+        .lock()
+        .unwrap()
+        .insert(question.id.clone(), question);
     Response::builder()
         .status(StatusCode::OK)
         .body("Question added".to_string())
@@ -66,6 +70,49 @@ impl AppState {
         AppState {
             questions: Arc::new(Mutex::new(questions)),
         }
+    }
+
+    fn init(self) -> Self {
+        // Credit for questions from github co-pilot
+        let questions = vec![
+            Question::new(
+                QuestionId("1".to_string()),
+                "What is Rust?".to_string(),
+                "Rust is a systems programming language".to_string(),
+                Some(vec!["rust".to_string(), "programming".to_string()]),
+            ),
+            Question::new(
+                QuestionId("2".to_string()),
+                "What is Tokio?".to_string(),
+                "Tokio is an asynchronous runtime for Rust".to_string(),
+                Some(vec!["tokio".to_string(), "asynchronous".to_string()]),
+            ),
+            Question::new(
+                QuestionId("3".to_string()),
+                "What is Axum?".to_string(),
+                "Axum is a web framework based on hyper and tower".to_string(),
+                Some(vec!["axum".to_string(), "web".to_string()]),
+            ),
+        ];
+        for question in questions {
+            self.questions
+                .lock()
+                .unwrap()
+                .insert(question.id.clone(), question);
+        }
+        self
+    }
+
+    fn get_question(&self, id: &QuestionId) -> Option<Question> {
+        self.questions.lock().unwrap().get(id).cloned()
+    }
+
+    fn add_question(self, question: Question) -> Self {
+        self.questions
+            .lock()
+            .unwrap()
+            .insert(question.id.clone(), question);
+        self
     }
 }
 
@@ -111,28 +158,7 @@ async fn main() {
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
         .max_age(Duration::from_secs(60) * 10);
-    // Credit for questions from github co-pilot
-    let questions = vec![
-        Question::new(
-            QuestionId("1".to_string()),
-            "What is Rust?".to_string(),
-            "Rust is a systems programming language".to_string(),
-            Some(vec!["rust".to_string(), "programming".to_string()]),
-        ),
-        Question::new(
-            QuestionId("2".to_string()),
-            "What is Tokio?".to_string(),
-            "Tokio is an asynchronous runtime for Rust".to_string(),
-            Some(vec!["tokio".to_string(), "asynchronous".to_string()]),
-        ),
-        Question::new(
-            QuestionId("3".to_string()),
-            "What is Axum?".to_string(),
-            "Axum is a web framework based on hyper and tower".to_string(),
-            Some(vec!["axum".to_string(), "web".to_string()]),
-        ),
-    ];
-    let state = AppState::new(questions.into_iter().map(|item| (item.id.clone(), item)).collect());
+    let state = AppState::new(HashMap::new()).init();
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/questions", get(get_questions).with_state(state.clone()))
