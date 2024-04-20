@@ -66,19 +66,18 @@ struct AppState {
 }
 
 impl AppState {
-    fn new(questions: HashMap<QuestionId, Question>) -> Self {
+    fn new() -> Self {
         AppState {
-            questions: Arc::new(Mutex::new(questions)),
+            questions: Arc::new(Mutex::new(self::AppState::init())),
         }
     }
 
-    fn init(self) -> Self {
+    fn init() -> HashMap<QuestionId, Question> {
         let file = include_str!("../questions.json");
         let questions: HashMap<QuestionId, Question> = serde_json::from_str::<HashMap<QuestionId, Question>>(file)
             .unwrap()
             .into_iter().collect();
-        self.questions.lock().unwrap().extend(questions);
-        self
+        HashMap::from(questions)
     }
 
     fn get_question(&self, id: &QuestionId) -> Option<Question> {
@@ -136,7 +135,7 @@ async fn main() {
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
         .max_age(Duration::from_secs(60) * 10);
-    let state = AppState::new(HashMap::new()).init();
+    let state = AppState::new();
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/questions", get(get_questions).with_state(state.clone()))
