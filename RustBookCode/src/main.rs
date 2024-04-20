@@ -3,7 +3,10 @@ use std::str::FromStr;
 use std::io::{Error, ErrorKind};
 use std::sync::{Arc, Mutex};
 use axum::Json;
-use axum::{Router, routing::get, routing::post, extract::State, response::{IntoResponse, Response}};
+use axum::{Router, routing::get, routing::post, 
+    extract::State, response::{IntoResponse, Response},
+    http::StatusCode
+};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -34,10 +37,10 @@ async fn post_question(
 ) -> impl IntoResponse {
     state.questions.lock().unwrap().insert(question);
     Response::builder()
-        .status(200)
+        .status(StatusCode::OK)
         .body("Question added".to_string())
         .unwrap_or_else(|_| Response::builder()
-            .status(500)
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
             .body("Failed to add question".into())
             .unwrap())
 }
