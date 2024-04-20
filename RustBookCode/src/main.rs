@@ -1,15 +1,18 @@
 use std::str::FromStr;
 use std::io::{Error, ErrorKind};
-use serde::Serialize;
+use axum::{Router, routing::get};
+use serde::{Serialize, Deserialize};
+use tokio::net::TcpListener;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct Question {
     id: QuestionId,
     title: String,
     content: String,
     tags: Option<Vec<String>>,
 }
-#[derive(Debug, Serialize)]
+
+#[derive(Debug)]
 struct QuestionId(String);
 
 impl Question {
@@ -34,12 +37,10 @@ impl FromStr for QuestionId {
     }
 }
 
-fn main() {
-    let question = Question::new(
-        QuestionId::from_str("1").expect("No id provided"),
-        "First Question".to_string(),
-        "Content of question".to_string(),
-        Some(vec!("faq".to_string())),
-    );
-    println!("{:?}", question);
+#[tokio::main]
+async fn main() {
+    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

@@ -7,4 +7,6 @@ authors = ["Nathan Moes <moes@pdx.edu>", "Bastian Gruber"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = "0.7.5"
 serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.37.0", features = ["rt-multi-thread"] }
