@@ -1,10 +1,12 @@
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::io::{Error, ErrorKind};
-use axum::{Router, routing::get};
+use std::sync::{Arc, Mutex};
+use axum::Json;
+use axum::{Router, routing::get, routing::post, extract::State, response::{IntoResponse, Response}};
 use serde::{Serialize, Deserialize};
-use tokio::net::TcpListener;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 struct Question {
     id: QuestionId,
     title: String,
@@ -12,7 +14,7 @@ struct Question {
     tags: Option<Vec<String>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 struct QuestionId(String);
 
 impl Question {
@@ -24,6 +26,51 @@ impl Question {
             tags,
         }
     }
+}
+
+async fn post_question(
+    State(state): State<AppState>,
+    Json(question): Json<Question>,
+) -> impl IntoResponse {
+    state.questions.lock().unwrap().insert(question);
+    Response::builder()
+        .status(200)
+        .body("Question added".to_string())
+        .unwrap_or_else(|_| Response::builder()
+            .status(500)
+            .body("Failed to add question".into())
+            .unwrap())
+}
+
+#[derive(Clone)]
+struct AppState {
+    questions: Arc<Mutex<HashSet<Question>>>,
+}
+
+impl AppState {
+    fn new(questions: HashSet<Question>) -> Self {
+        AppState {
+            questions: Arc::new(Mutex::new(questions)),
+        }
+    }
+}
+
+impl Clone for Question {
+    fn clone(&self) -> Self {
+        Question {
+            id: self.id.clone(),
+            title: self.title.clone(),
+            content: self.content.clone(),
+            tags: self.tags.clone(),
+        }
+    }
+}
+
+async fn get_questions(
+    State(state): State<AppState>
+) -> String {
+    let questions = state.questions.lock().unwrap();
+    serde_json::to_string(&questions.clone()).unwrap()
 }
 
 impl FromStr for QuestionId {
@@ -39,7 +86,16 @@ impl FromStr for QuestionId {
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    // Credit for questions from github co-pilot
+    let questions = vec![
+        Question::new(QuestionId("1".to_string()), "What is Rust?".to_string(), "Rust is a systems programming language".to_string(), Some(vec!["rust".to_string(), "programming".to_string()])),
+        Question::new(QuestionId("2".to_string()), "What is Tokio?".to_string(), "Tokio is an asynchronous runtime for Rust".to_string(), Some(vec!["tokio".to_string(), "asynchronous".to_string()])),
+        Question::new(QuestionId("3".to_string()), "What is Axum?".to_string(), "Axum is a web framework based on hyper and tower".to_string(), Some(vec!["axum".to_string(), "web".to_string()])),
+    ];
+    let state = AppState::new(questions.into_iter().collect());
+    let app = Router::new().route("/", get(|| async { "Hello, World!" }))
+        .route("/questions", get(get_questions).with_state(state.clone()))
+        .route("/questions", post(post_question).with_state(state));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, app).await.unwrap();
