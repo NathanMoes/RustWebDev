@@ -312,6 +312,34 @@ async fn put_question(
     }
 }
 
+async fn delete_question(
+    State(state): State<AppState>,
+    Query(IdParam { id }): Query<IdParam>,
+) -> impl IntoResponse {
+    match id {
+        Some(id) => {
+            let question_id = QuestionId(id);
+            match state.get_question(&question_id).await {
+                Some(_) => {
+                    state.delete_question(&question_id).await;
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .body("Question deleted".to_string())
+                        .unwrap()
+                }
+                None => Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(ApiError::QuestionNotFound.to_string())
+                    .unwrap(),
+            }
+        }
+        None => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(ApiError::MissingParameters.to_string())
+            .unwrap(),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let cors = CorsLayer::new()
@@ -327,7 +355,7 @@ async fn main() {
         .route("/questions", post(post_question))
         .route("/question", get(get_question))
         .route("/questions/:id", put(put_question))
-        .route("/questions/:id", delete(handle_not_found))
+        .route("/questions/:id", delete(delete_question))
         .route("/answers", post(handle_not_found))
         .layer(cors)
         .with_state(state)
