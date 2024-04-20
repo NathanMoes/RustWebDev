@@ -73,33 +73,11 @@ impl AppState {
     }
 
     fn init(self) -> Self {
-        // Credit for questions from github co-pilot
-        let questions = vec![
-            Question::new(
-                QuestionId("1".to_string()),
-                "What is Rust?".to_string(),
-                "Rust is a systems programming language".to_string(),
-                Some(vec!["rust".to_string(), "programming".to_string()]),
-            ),
-            Question::new(
-                QuestionId("2".to_string()),
-                "What is Tokio?".to_string(),
-                "Tokio is an asynchronous runtime for Rust".to_string(),
-                Some(vec!["tokio".to_string(), "asynchronous".to_string()]),
-            ),
-            Question::new(
-                QuestionId("3".to_string()),
-                "What is Axum?".to_string(),
-                "Axum is a web framework based on hyper and tower".to_string(),
-                Some(vec!["axum".to_string(), "web".to_string()]),
-            ),
-        ];
-        for question in questions {
-            self.questions
-                .lock()
-                .unwrap()
-                .insert(question.id.clone(), question);
-        }
+        let file = include_str!("../questions.json");
+        let questions: HashMap<QuestionId, Question> = serde_json::from_str::<HashMap<QuestionId, Question>>(file)
+            .unwrap()
+            .into_iter().collect();
+        self.questions.lock().unwrap().extend(questions);
         self
     }
 
