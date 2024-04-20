@@ -73,7 +73,7 @@ async fn get_questions(
     State(state): State<AppState>
 ) -> String {
     let questions = state.questions.lock().unwrap();
-    serde_json::to_string(&questions.clone()).unwrap()
+    serde_json::to_string_pretty(&questions.clone()).unwrap()
 }
 
 impl FromStr for QuestionId {
