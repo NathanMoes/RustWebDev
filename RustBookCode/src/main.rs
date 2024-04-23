@@ -19,6 +19,19 @@ use std::usize;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 
+/// A question struct
+///
+/// This struct represents a question that can be asked and (future) answered via the API
+/// ##Example:
+/// ```
+/// {
+///    "id": "1",
+///    "title": "What is cargo toml?",
+///    "content": "I want to know what toml is and how it relates to cargo. Can someone explain?",
+///    "tags": ["rust", "toml", "cargo"]
+/// }
+/// ```
+///
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 struct Question {
     id: QuestionId,
@@ -27,31 +40,50 @@ struct Question {
     tags: Option<Vec<String>>,
 }
 
+/// A pagination struct
+///
+/// This struct is used to paginate the questions in the API from a start to an end index
+/// #Example:
+/// ```
+///
+/// {
+///   "start": "1",
+///   "end": "5"
+/// }
 #[derive(Debug, Serialize, Deserialize)]
 struct Pagination {
     start: Option<QuestionId>,
     end: Option<QuestionId>,
 }
 
+/// A parameter struct for the question id
+///
+/// This struct is used to get the id of a question from the query parameters
+/// ##Example:
+/// ```
+/// {
+///  "id": "1"
+/// }
 #[derive(Debug, Serialize, Deserialize)]
 struct IdParam {
     id: Option<String>,
 }
 
+/// A question id struct
+///
+/// This struct is used to represent the id of a question. Why, because the book said so, that's why.
+/// ##Example:
+/// ```
+/// {
+/// "id": "1"
+/// }
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 struct QuestionId(String);
 
-impl Question {
-    fn new(id: QuestionId, title: String, content: String, tags: Option<Vec<String>>) -> Self {
-        Question {
-            id,
-            title,
-            content,
-            tags,
-        }
-    }
-}
-
+/// Function to post a question to the "database"
+///
+/// Currently only modifies the state of the application by adding a question to the questions hashmap, but will add write to file soon
 async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
@@ -68,6 +100,14 @@ async fn post_question(
         })
 }
 
+/// An enum to represent the possible errors that can occur in the API
+///
+/// #Example:
+/// ```
+/// ApiError::ParseError(std::num::ParseIntError) // When a parameter cannot be parsed
+/// ApiError::MissingParameters // When a required parameter is missing
+/// ApiError::QuestionNotFound // When a question is not found
+/// ```
 #[derive(Debug)]
 enum ApiError {
     ParseError(std::num::ParseIntError),
@@ -75,6 +115,14 @@ enum ApiError {
     QuestionNotFound,
 }
 
+/// Implementing the IntoResponse trait for the ApiError enum
+///
+/// #Example:
+///
+/// ```
+/// let error = ApiError::MissingParameters;
+/// let response = error.into_response();
+/// ```
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
@@ -94,6 +142,12 @@ impl IntoResponse for ApiError {
     }
 }
 
+/// Implementing the Display trait for the ApiError enum
+/// #Example:
+/// ```
+/// let error = ApiError::MissingParameters;
+/// println!("{}", error);
+/// ```
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -104,11 +158,14 @@ impl std::fmt::Display for ApiError {
     }
 }
 
+/// Application state struct
+/// This struct is used to hold the state of the application, which is currently only the questions for the API
 #[derive(Clone)]
 struct AppState {
     questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
 }
 
+/// Implementing the AppState struct with basic functions to use for API and state management operations
 impl AppState {
     fn new() -> Self {
         AppState {
@@ -116,6 +173,7 @@ impl AppState {
         }
     }
 
+    /// Function to initialize the questions hashmap by reading in the questions from a json file
     fn init() -> HashMap<QuestionId, Question> {
         let file = include_str!("../questions.json");
         let questions: HashMap<QuestionId, Question> =
@@ -126,10 +184,12 @@ impl AppState {
         questions
     }
 
+    /// Function to get a question from the questions hashmap
     async fn get_question(&self, id: &QuestionId) -> Option<Question> {
         self.questions.read().await.get(id).cloned()
     }
 
+    /// Function to add a question to the questions hashmap
     async fn add_question(self, question: Question) -> Self {
         self.questions
             .write()
@@ -138,11 +198,13 @@ impl AppState {
         self
     }
 
+    /// Function to delete a question from the questions hashmap
     async fn delete_question(self, id: &QuestionId) -> Self {
         self.questions.write().await.remove(id);
         self
     }
 
+    /// Function to update a question in the questions hashmap
     async fn update_question(self, id: &QuestionId, question: Question) -> Self {
         self.questions.write().await.insert(id.clone(), question);
         self
@@ -160,26 +222,8 @@ impl Clone for Question {
     }
 }
 
-async fn update_question(
-    State(state): State<AppState>,
-    Json(question): Json<Question>,
-    id: QuestionId,
-) -> impl IntoResponse {
-    match state.get_question(&id).await {
-        Some(_) => {
-            state.update_question(&id, question).await;
-            Response::builder()
-                .status(StatusCode::OK)
-                .body("Question updated".to_string())
-                .unwrap()
-        }
-        None => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
-    }
-}
-
+/// API function to get all questions or a range of questions from the questions hashmap
+/// 
 async fn get_questions(
     State(state): State<AppState>,
     Query(Pagination { start, end }): Query<Pagination>,
@@ -249,6 +293,8 @@ async fn get_questions(
     }
 }
 
+
+/// API function to get a single question from the questions 
 async fn get_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
@@ -285,6 +331,7 @@ impl FromStr for QuestionId {
     }
 }
 
+/// API function to handle a not found error instead of other hard coding stuff. Will expand further in the future
 async fn handle_not_found() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::NOT_FOUND)
@@ -292,6 +339,7 @@ async fn handle_not_found() -> impl IntoResponse {
         .unwrap()
 }
 
+/// API function to handle request to update a question in the questions "Database"
 async fn put_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
@@ -312,6 +360,7 @@ async fn put_question(
     }
 }
 
+/// API function to handle request to delete a question from the questions "Database"
 async fn delete_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
@@ -347,7 +396,7 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
-        .max_age(Duration::from_secs(60) * 10);
+        .max_age(Duration::from_secs(60) * 10); // 10 minutes, was just toying with cors
     let state = AppState::new();
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
