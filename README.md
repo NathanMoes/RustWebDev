@@ -6,6 +6,14 @@ This repo will serve for the purposes of the class CS510-Rust web development Sp
 This will include following along with the course textbook as well as any assigned materials etc.
 Broken up by sub repo for the related assignments and book code
 
-### Commit a1b052da188d91b7d95bc026099c80e4f0589c5a is code copied over from book author's code for chapter 2.
+## Currently developed functions
 
-Work from that commit is not my own, I do not claim it as such. I've been following along the book but haven't been coding the examples on my personal laptop. Thus, I copied over code from up to the point that I've been reading and working on
+### RESTful API supporting CRUD
+
+#### Update question
+
+#### Delete question
+
+#### Post question
+
+#### Get question(s)
