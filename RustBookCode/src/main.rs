@@ -223,7 +223,7 @@ impl Clone for Question {
 }
 
 /// API function to get all questions or a range of questions from the questions hashmap
-/// 
+///
 async fn get_questions(
     State(state): State<AppState>,
     Query(Pagination { start, end }): Query<Pagination>,
@@ -293,8 +293,7 @@ async fn get_questions(
     }
 }
 
-
-/// API function to get a single question from the questions 
+/// API function to get a single question from the questions
 async fn get_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
