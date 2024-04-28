@@ -3,6 +3,23 @@ use tracing::{info, instrument};
 use crate::database::*;
 use crate::*;
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        get_questions,
+        delete_question,
+        put_question,
+        post_question
+    ),
+    components(
+        schemas(Question, ApiError),
+    ),
+    tags(
+        (name = "Question", description = "Questions API")
+    )
+)]
+pub struct ApiDoc;
+
 /// A pagination struct
 ///
 /// This struct is used to paginate the questions in the API from a start to an end index
@@ -20,7 +37,12 @@ pub struct Pagination {
 }
 
 /// API function to get all questions or a range of questions from the questions hashmap
-///
+#[utoipa::path(get, path = "/questions", responses((
+    status = 200,
+    description = "Returns all questions or a range of questions",
+    body = [Question]
+),
+(status = 204, description = "Questions db is empty", body = ApiError)))]
 #[instrument]
 pub async fn get_questions(
     State(state): State<AppState>,
@@ -94,6 +116,11 @@ pub async fn get_questions(
 
 /// API function to handle request to delete a question from the questions "Database"
 #[instrument]
+#[utoipa::path(delete, path = "/questions/:id", responses((
+    status = 200,
+    description = "Question deleted"
+),
+(status = 404, description = "Question not found", body = ApiError)))]
 pub async fn delete_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
@@ -124,6 +151,11 @@ pub async fn delete_question(
 
 /// API function to handle request to update a question in the questions "Database"
 #[instrument]
+#[utoipa::path(put, path = "/questions/:id", responses((
+    status = 200,
+    description = "Question updated"
+),
+(status = 404, description = "Question not found", body = ApiError)))]
 pub async fn put_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
@@ -144,23 +176,6 @@ pub async fn put_question(
     }
 }
 
-/// Implementing the Display trait for the ApiError enum
-/// #Example:
-/// ```
-/// let error = ApiError::MissingParameters;
-/// println!("{}", error);
-/// ```
-///
-impl std::fmt::Display for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ApiError::ParseError(e) => write!(f, "Cannot parse parameter: {}", e),
-            ApiError::MissingParameters => write!(f, "Missing parameter"),
-            ApiError::QuestionNotFound => write!(f, "Question not found"),
-        }
-    }
-}
-
 /// A parameter struct for the question id
 ///
 /// This struct is used to get the id of a question from the query parameters
@@ -178,6 +193,11 @@ pub struct IdParam {
 ///
 /// Currently only modifies the state of the application by adding a question to the questions hashmap, but will add write to file soon
 #[instrument]
+#[utoipa::path(post, path = "/questions", responses((
+    status = 200,
+    description = "Question added"
+),
+(status = 500, description = "Failed to add question", body = ApiError)))]
 pub async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
@@ -202,10 +222,13 @@ pub async fn post_question(
 /// ApiError::MissingParameters // When a required parameter is missing
 /// ApiError::QuestionNotFound // When a question is not found
 /// ```
-#[derive(Debug)]
+#[derive(Debug, ToSchema, thiserror::Error)]
 pub enum ApiError {
+    #[error("Cannot parse parameter: {0}")]
     ParseError(std::num::ParseIntError),
+    #[error("Missing parameter")]
     MissingParameters,
+    #[error("Question not found")]
     QuestionNotFound,
 }
 

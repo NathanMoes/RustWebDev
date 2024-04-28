@@ -1,4 +1,5 @@
 use crate::*;
+use std::collections::HashSet;
 
 /// A question id struct
 ///
@@ -25,12 +26,17 @@ pub struct QuestionId(pub String);
 /// }
 /// ```
 ///
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 pub struct Question {
+    #[schema(example = "1")]
     pub id: QuestionId,
+    #[schema(example = "What is rust?")]
     pub title: String,
+    #[schema(example = "I want to know what rust is, can someone tell me?")]
     pub content: String,
-    pub tags: Option<Vec<String>>,
+    #[schema(example = "rust, programming, beginner")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<HashSet<String>>,
 }
 
 impl FromStr for QuestionId {
@@ -41,6 +47,29 @@ impl FromStr for QuestionId {
             false => Ok(QuestionId(id.to_string())),
             true => Err(Error::new(ErrorKind::InvalidInput, "No id provided")),
         }
+    }
+}
+
+// Credit to knock knock for the format_tags function
+pub fn format_tags(tags: &HashSet<String>) -> String {
+    let taglist: Vec<&str> = tags.iter().map(String::as_ref).collect();
+    taglist.join(", ")
+}
+
+impl From<&Question> for String {
+    fn from(question: &Question) -> Self {
+        let mut text: String = question.id.0.clone();
+        text += "Question: \n";
+        text += &format!("Title: {}\n", question.title);
+        text += &format!("Content: {}\n", question.content);
+
+        let mut annotations: Vec<String> = vec![format!("id: {}", question.id.0)];
+        if let Some(tags) = &question.tags {
+            annotations.push(format!("tags: {:?}", format_tags(tags)));
+        }
+        let annotations_text = annotations.join("; ");
+        text += &format!("[{}]\n", annotations_text);
+        text
     }
 }
 
