@@ -17,6 +17,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
+use tower_http::{ trace};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod api;
 mod database;
 mod question;
@@ -36,9 +38,21 @@ async fn handle_not_found() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
-    
-    log::info!("Starting server...");
+    // log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+
+    // log::info!("Starting server...");
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "questions=debug,info".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+    // https://carlosmv.hashnode.dev/adding-logging-and-tracing-to-an-axum-app-rust
+    let trace_layer = trace::TraceLayer::new_for_http()
+        .make_span_with(trace::DefaultMakeSpan::new().level(tracing::Level::INFO))
+        .on_response(trace::DefaultOnResponse::new().level(tracing::Level::INFO));
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST])
@@ -55,9 +69,11 @@ async fn main() {
         .route("/questions/:id", delete(delete_question))
         .route("/answers", post(handle_not_found))
         .layer(cors)
+        .layer(trace_layer)
         .with_state(state)
         .fallback(handle_not_found);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    tracing::debug!("serving {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
