@@ -23,3 +23,6 @@ utoipa = { version = "4.2.0", features = ["axum_extras"] }
 utoipa-rapidoc = { version = "3.0.0", features = ["axum"] }
 utoipa-redoc = { version = "3.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
+log = "0.4"
+env_logger = "0.9"
+log4rs = "1.0"

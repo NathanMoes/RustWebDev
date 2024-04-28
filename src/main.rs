@@ -15,7 +15,6 @@ use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use std::usize;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 mod api;
@@ -37,6 +36,9 @@ async fn handle_not_found() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+    
+    log::info!("Starting server...");
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST])
