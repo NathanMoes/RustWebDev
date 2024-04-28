@@ -2,7 +2,7 @@ use crate::*;
 
 /// Application state struct
 /// This struct is used to hold the state of the application, which is currently only the questions for the API
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AppState {
     pub questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
 }

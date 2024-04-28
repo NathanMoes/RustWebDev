@@ -1,3 +1,5 @@
+use tracing::{info, instrument};
+
 use crate::database::*;
 use crate::*;
 
@@ -19,11 +21,13 @@ pub struct Pagination {
 
 /// API function to get all questions or a range of questions from the questions hashmap
 ///
+#[instrument]
 pub async fn get_questions(
     State(state): State<AppState>,
     Query(Pagination { start, end }): Query<Pagination>,
 ) -> impl IntoResponse {
     if start.is_none() && end.is_none() {
+        info!("Getting all questions");
         let questions = state.questions.read().await;
         Response::builder()
             .status(StatusCode::OK)
@@ -89,6 +93,7 @@ pub async fn get_questions(
 }
 
 /// API function to handle request to delete a question from the questions "Database"
+#[instrument]
 pub async fn delete_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
@@ -118,6 +123,7 @@ pub async fn delete_question(
 }
 
 /// API function to handle request to update a question in the questions "Database"
+#[instrument]
 pub async fn put_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
@@ -144,6 +150,7 @@ pub async fn put_question(
 /// let error = ApiError::MissingParameters;
 /// println!("{}", error);
 /// ```
+///
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -170,6 +177,7 @@ pub struct IdParam {
 /// Function to post a question to the "database"
 ///
 /// Currently only modifies the state of the application by adding a question to the questions hashmap, but will add write to file soon
+#[instrument]
 pub async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
