@@ -58,30 +58,24 @@ pub async fn get_questions(
     } else {
         let questions = state.questions.read().await;
         let mut result = HashMap::new();
-        let start_index;
-        let end_index;
-        match start {
-            Some(s) => {
-                start_index = s.0;
-            }
+        let start_index = match start {
+            Some(s) => s.0,
             None => {
                 return Response::builder()
                     .status(StatusCode::BAD_REQUEST)
                     .body(ApiError::MissingParameters.to_string())
                     .unwrap();
             }
-        }
-        match end {
-            Some(s) => {
-                end_index = s.0;
-            }
+        };
+        let end_index = match end {
+            Some(s) => s.0,
             None => {
                 return Response::builder()
                     .status(StatusCode::BAD_REQUEST)
                     .body(ApiError::MissingParameters.to_string())
                     .unwrap();
             }
-        }
+        };
         for (id, question) in questions.iter() {
             let id_index = id.0;
             if id_index >= start_index && id_index <= end_index {
