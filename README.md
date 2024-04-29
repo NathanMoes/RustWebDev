@@ -9,6 +9,8 @@ Development book by Gruber
 
 ## Currently developed functions
 
+## Credit to Github Co-Pilot for the creation of questions in questions.json
+
 ### RESTful API supporting CRUD
 
 #### Update question
