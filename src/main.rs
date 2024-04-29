@@ -40,10 +40,6 @@ async fn handle_not_found() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    // log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
-
-    // log::info!("Starting server...");
-
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
