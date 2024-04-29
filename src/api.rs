@@ -61,15 +61,9 @@ pub async fn get_questions(
         let start_index;
         let end_index;
         match start {
-            Some(s) => match s.0.parse::<usize>().map_err(ApiError::ParseError) {
-                Ok(index) => start_index = index,
-                Err(e) => {
-                    return Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .body(e.to_string())
-                        .unwrap();
-                }
-            },
+            Some(s) => {
+                start_index = s.0;
+            }
             None => {
                 return Response::builder()
                     .status(StatusCode::BAD_REQUEST)
@@ -78,21 +72,8 @@ pub async fn get_questions(
             }
         }
         match end {
-            Some(_) => {
-                match end
-                    .unwrap()
-                    .0
-                    .parse::<usize>()
-                    .map_err(ApiError::ParseError)
-                {
-                    Ok(index) => end_index = index,
-                    Err(e) => {
-                        return Response::builder()
-                            .status(StatusCode::BAD_REQUEST)
-                            .body(e.to_string())
-                            .unwrap();
-                    }
-                }
+            Some(s) => {
+                end_index = s.0;
             }
             None => {
                 return Response::builder()
@@ -102,7 +83,7 @@ pub async fn get_questions(
             }
         }
         for (id, question) in questions.iter() {
-            let id_index = id.0.parse::<usize>().unwrap();
+            let id_index = id.0;
             if id_index >= start_index && id_index <= end_index {
                 result.insert(id.clone(), question.clone());
             }
@@ -186,7 +167,7 @@ pub async fn put_question(
 /// }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdParam {
-    pub id: Option<String>,
+    pub id: Option<u32>,
 }
 
 /// Function to post a question to the "database"
@@ -224,8 +205,6 @@ pub async fn post_question(
 /// ```
 #[derive(Debug, ToSchema, thiserror::Error)]
 pub enum ApiError {
-    #[error("Cannot parse parameter: {0}")]
-    ParseError(std::num::ParseIntError),
     #[error("Missing parameter")]
     MissingParameters,
     #[error("Question not found")]
@@ -243,10 +222,6 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
-            ApiError::ParseError(_) => Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body("Cannot parse parameter".into())
-                .unwrap(),
             ApiError::MissingParameters => Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body("Missing parameter".into())

@@ -11,7 +11,7 @@ use std::collections::HashSet;
 /// }
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-pub struct QuestionId(pub String);
+pub struct QuestionId(pub u32);
 
 /// A question struct
 ///
@@ -42,10 +42,10 @@ pub struct Question {
 impl FromStr for QuestionId {
     type Err = std::io::Error;
 
-    fn from_str(id: &str) -> Result<Self, Self::Err> {
-        match id.is_empty() {
-            false => Ok(QuestionId(id.to_string())),
-            true => Err(Error::new(ErrorKind::InvalidInput, "No id provided")),
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.parse::<u32>() {
+            Ok(id) => Ok(QuestionId(id)),
+            Err(_) => Err(Error::new(ErrorKind::InvalidInput, "Invalid id")),
         }
     }
 }
@@ -58,7 +58,7 @@ pub fn format_tags(tags: &HashSet<String>) -> String {
 
 impl From<&Question> for String {
     fn from(question: &Question) -> Self {
-        let mut text: String = question.id.0.clone();
+        let mut text: String = question.id.0.clone().to_string();
         text += "Question: \n";
         text += &format!("Title: {}\n", question.title);
         text += &format!("Content: {}\n", question.content);
