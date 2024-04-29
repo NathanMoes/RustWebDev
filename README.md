@@ -4,7 +4,8 @@
 
 This repo will serve for the purposes of the class CS510-Rust web development Spring 2024.
 This will include following along with the course textbook as well as any assigned materials etc.
-Broken up by sub repo for the related assignments and book code
+The purpose of the repo is to implement the questions (and answers) database + API/service from the Rust web
+Development book by Gruber
 
 ## Currently developed functions
 
