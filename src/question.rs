@@ -86,6 +86,7 @@ pub fn format_tags(tags: &HashSet<String>) -> String {
     taglist.join(", ")
 }
 
+/// Implementing the From trait for the Question struct to convert it to a string
 impl From<&Question> for String {
     fn from(question: &Question) -> Self {
         let mut text: String = question.id.0.clone().to_string();
@@ -103,6 +104,7 @@ impl From<&Question> for String {
     }
 }
 
+/// Implementing the Clone trait for the Question struct
 impl Clone for Question {
     fn clone(&self) -> Self {
         Question {

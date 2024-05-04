@@ -9,6 +9,19 @@ pub struct AppState(pub PgPool);
 
 /// Implementing the AppState struct with basic functions to use for API and state management operations
 impl AppState {
+    /// Function to create a new AppState
+    /// This function creates a new AppState by connecting to the database and running the migrations
+    /// #Example:
+    /// ```
+    /// let state = AppState::new().await.unwrap();
+    /// ```
+    /// This function returns a Result with the AppState or an error
+    /// #Errors:
+    /// This function can return an error if the database connection fails or the migrations fail
+    /// #Panics:
+    /// This function will panic if the environment variables are not set
+    /// #Notes:
+    /// This function is used to create the AppState for the API
     pub async fn new() -> Result<Self, Box<dyn Error>> {
         use std::env::var;
 
@@ -25,7 +38,7 @@ impl AppState {
         Ok(AppState(pool))
     }
 
-    /// Function to get a question from the questions hashmap
+    /// Function to get a question from the questions database, by id
     pub async fn get_question(&self, id: &QuestionId) -> Result<Option<Question>, Box<dyn Error>> {
         let row = sqlx::query(r#"SELECT * FROM questions WHERE id = $1;"#)
             .bind(id.0)
@@ -43,7 +56,7 @@ impl AppState {
         }))
     }
 
-    /// Function to get all questions
+    /// Function to get all questions from the database
     pub async fn get_all_questions(&self) -> Result<Vec<Question>, Box<dyn Error>> {
         let mut questions = Vec::new();
         let rows = sqlx::query(r#"SELECT * FROM questions;"#)
@@ -62,7 +75,7 @@ impl AppState {
         Ok(questions)
     }
 
-    /// Function to add a question to the questions hashmap
+    /// Function to add a question to the questions database
     pub async fn add_question(self, question: Question) -> Result<(), Box<dyn Error>> {
         let tx = Pool::begin(&self.0).await?;
         let tags = question
@@ -78,7 +91,7 @@ impl AppState {
         Ok(tx.commit().await?)
     }
 
-    /// Function to delete a question from the questions hashmap
+    /// Function to delete a question from the questions database
     pub async fn delete_question(self, id: &QuestionId) -> Result<(), Box<dyn Error>> {
         let tx = Pool::begin(&self.0).await?;
         sqlx::query(r#"DELETE FROM questions WHERE id = $1;"#)
@@ -88,7 +101,7 @@ impl AppState {
         Ok(tx.commit().await?)
     }
 
-    /// Function to update a question in the questions hashmap
+    /// Function to update a question in the questions database
     pub async fn update_question(
         self,
         id: &QuestionId,

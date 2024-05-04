@@ -40,7 +40,7 @@ pub struct Pagination {
 #[utoipa::path(get, path = "/questions", responses((
     status = 200,
     description = "Returns all questions or a range of questions",
-    body = [Question]
+    body = None
 ),
 (status = 204, description = "Questions db is empty", body = ApiError)))]
 #[instrument]
@@ -129,7 +129,8 @@ pub async fn delete_question(
 #[instrument]
 #[utoipa::path(put, path = "/questions/:id", responses((
     status = 200,
-    description = "Question updated"
+    description = "Question updated",
+    body = UpdateQuestion
 ),
 (status = 404, description = "Question not found", body = ApiError)))]
 pub async fn put_question(
@@ -200,7 +201,8 @@ pub struct IdParam {
 #[instrument]
 #[utoipa::path(post, path = "/questions", responses((
     status = 200,
-    description = "Question added"
+    description = "Question added",
+    body = Question
 ),
 (status = 500, description = "Failed to add question", body = ApiError)))]
 pub async fn post_question(
