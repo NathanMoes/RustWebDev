@@ -239,10 +239,11 @@ pub async fn post_question(
                 .unwrap()
         }
         Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
             return Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(error.to_string())
-                .unwrap()
+                .unwrap();
         }
     }
 }
@@ -265,10 +266,13 @@ pub async fn post_account(
             .status(StatusCode::OK)
             .body("Account added".to_string())
             .unwrap(),
-        Err(error) => Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(error.to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string())
+                .unwrap()
+        }
     }
 }
 
@@ -298,10 +302,13 @@ pub async fn get_account(
             .status(StatusCode::OK)
             .body(serde_json::to_string_pretty(&account).unwrap())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(ApiError::AccountNotFound.to_string())
+                .unwrap();
+        }
     }
 }
 
@@ -331,10 +338,13 @@ pub async fn delete_account(
             .status(StatusCode::OK)
             .body("Account deleted".to_string())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(ApiError::AccountNotFound.to_string())
+                .unwrap();
+        }
     }
 }
 
@@ -365,10 +375,13 @@ pub async fn put_account(
             .status(StatusCode::OK)
             .body("Account updated".to_string())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(ApiError::AccountNotFound.to_string())
+                .unwrap();
+        }
     }
 }
 
@@ -390,10 +403,13 @@ pub async fn get_answers(
             .status(StatusCode::OK)
             .body(serde_json::to_string_pretty(&answer).unwrap())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(ApiError::AnswerNotFound.to_string())
+                .unwrap()
+        }
     }
 }
 
@@ -415,10 +431,13 @@ pub async fn delete_answer(
             .status(StatusCode::OK)
             .body("Answer deleted".to_string())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body("Failed to delete answer".to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Failed to delete answer".to_string())
+                .unwrap()
+        }
     }
 }
 
@@ -441,10 +460,13 @@ pub async fn put_answer(
             .status(StatusCode::OK)
             .body("Answer updated".to_string())
             .unwrap(),
-        Err(_) => Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body("Failed to update answer".to_string())
-            .unwrap(),
+        Err(error) => {
+            tracing::event!(tracing::Level::ERROR, "{:?}", error);
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string())
+                .unwrap()
+        }
     }
 }
 
@@ -488,6 +510,10 @@ pub enum ApiError {
     QuestionNotFound,
     #[error("Database error: {0}")]
     DatabaseError(String),
+    #[error("Account not found")]
+    AccountNotFound,
+    #[error("Answer not found")]
+    AnswerNotFound,
 }
 
 /// Implementing the IntoResponse trait for the ApiError enum
@@ -512,6 +538,14 @@ impl IntoResponse for ApiError {
             ApiError::DatabaseError(error) => Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(error.to_string().into())
+                .unwrap(),
+            ApiError::AccountNotFound => Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("Account not found".to_string().into())
+                .unwrap(),
+            ApiError::AnswerNotFound => Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("Answer not found".to_string().into())
                 .unwrap(),
         }
     }
