@@ -134,18 +134,34 @@ pub async fn delete_question(
 (status = 404, description = "Question not found", body = ApiError)))]
 pub async fn put_question(
     State(state): State<AppState>,
-    Json(question): Json<Question>,
+    Query(IdParam { id }): Query<IdParam>,
+    Json(question): Json<question::UpdateQuestion>,
 ) -> impl IntoResponse {
-    if state.get_question(&question.id).await.is_err() {
+    let question_id = match id {
+        Some(id) => QuestionId(id),
+        None => match question.id {
+            Some(id) => id,
+            None => {
+                return Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(ApiError::MissingParameters.to_string())
+                    .unwrap();
+            }
+        },
+    };
+    if state.get_question(&question_id).await.is_err() {
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(ApiError::QuestionNotFound.to_string())
             .unwrap();
     }
-    match state
-        .update_question(&question.id, question.to_owned())
-        .await
-    {
+    let updated_question = Question {
+        id: question_id.clone(),
+        title: question.title,
+        content: question.content,
+        tags: question.tags,
+    };
+    match state.update_question(&question_id, updated_question).await {
         Ok(_) => (),
         Err(_) => {
             return Response::builder()
@@ -202,7 +218,7 @@ pub async fn post_question(
             return Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(error.to_string())
-                .unwrap();
+                .unwrap()
         }
     }
 }
@@ -221,6 +237,8 @@ pub enum ApiError {
     MissingParameters,
     #[error("Question not found")]
     QuestionNotFound,
+    #[error("Database error: {0}")]
+    DatabaseError(String),
 }
 
 /// Implementing the IntoResponse trait for the ApiError enum
@@ -236,12 +254,22 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::MissingParameters => Response::builder()
                 .status(StatusCode::BAD_REQUEST)
-                .body("Missing parameter".into())
+                .body("Missing parameter".to_string().into())
                 .unwrap(),
             ApiError::QuestionNotFound => Response::builder()
                 .status(StatusCode::NOT_FOUND)
-                .body("Question not found".into())
+                .body("Question not found".to_string().into())
+                .unwrap(),
+            ApiError::DatabaseError(error) => Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string().into())
                 .unwrap(),
         }
+    }
+}
+
+impl From<sqlx::Error> for ApiError {
+    fn from(e: sqlx::Error) -> Self {
+        ApiError::DatabaseError(e.to_string())
     }
 }

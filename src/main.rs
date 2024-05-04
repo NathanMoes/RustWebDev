@@ -62,7 +62,7 @@ async fn main() {
         .route("/questions", get(get_questions))
         .route("/questions", post(post_question))
         .route("/question", get(get_question))
-        .route("/questions/:id", put(put_question))
+        .route("/questions", put(put_question))
         .route("/questions", delete(delete_question))
         .route("/answers", post(handle_not_found))
         .layer(cors)

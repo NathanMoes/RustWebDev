@@ -63,7 +63,7 @@ impl AppState {
     }
 
     /// Function to add a question to the questions hashmap
-    pub async fn add_question(self, question: Question) -> Result<(), sqlx::Error> {
+    pub async fn add_question(self, question: Question) -> Result<(), Box<dyn Error>> {
         let tx = Pool::begin(&self.0).await?;
         let tags = question
             .tags
@@ -75,7 +75,7 @@ impl AppState {
             .execute(&self.0)
             .await?;
 
-        tx.commit().await
+        Ok(tx.commit().await?)
     }
 
     /// Function to delete a question from the questions hashmap
@@ -97,7 +97,7 @@ impl AppState {
         let tx = Pool::begin(&self.0).await?;
         let tags = question
             .tags
-            .map(|tags| serde_json::to_value(tags).unwrap());
+            .map(|tags| tags.into_iter().collect::<Vec<String>>());
         sqlx::query(r#"UPDATE questions SET title = $1, content = $2, tags = $3 WHERE id = $4;"#)
             .bind(question.title)
             .bind(question.content)

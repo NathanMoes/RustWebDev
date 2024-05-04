@@ -39,6 +39,33 @@ pub struct Question {
     pub tags: Option<HashSet<String>>,
 }
 
+/// An update question struct
+///
+/// This struct represents a question that can be updated via the API
+/// ##Example:
+/// ```
+/// {
+///    "id": "1",
+///    "title": "What is cargo toml?",
+///    "content": "I want to know what toml is and how it relates to cargo. Can someone explain?",
+///    "tags": ["rust", "toml", "cargo"]
+/// }
+/// ```
+///
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct UpdateQuestion {
+    #[schema(example = "1")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<QuestionId>,
+    #[schema(example = "What is rust?")]
+    pub title: String,
+    #[schema(example = "I want to know what rust is, can someone tell me?")]
+    pub content: String,
+    #[schema(example = "rust, programming, beginner")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<HashSet<String>>,
+}
+
 impl FromStr for QuestionId {
     type Err = std::io::Error;
 
