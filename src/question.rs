@@ -11,7 +11,7 @@ use std::collections::HashSet;
 /// }
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-pub struct QuestionId(pub u32);
+pub struct QuestionId(pub i32);
 
 /// A question struct
 ///
@@ -43,9 +43,12 @@ impl FromStr for QuestionId {
     type Err = std::io::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.parse::<u32>() {
+        match s.parse::<i32>() {
             Ok(id) => Ok(QuestionId(id)),
-            Err(_) => Err(Error::new(ErrorKind::InvalidInput, "Invalid id")),
+            Err(_) => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid id",
+            )),
         }
     }
 }

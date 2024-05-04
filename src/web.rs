@@ -10,11 +10,11 @@ pub async fn get_question(
         Some(id) => {
             let question_id = QuestionId(id);
             match state.get_question(&question_id).await {
-                Some(question) => Response::builder()
+                Ok(question) => Response::builder()
                     .status(StatusCode::OK)
                     .body(serde_json::to_string_pretty(&question).unwrap())
                     .unwrap(),
-                None => Response::builder()
+                Err(_) => Response::builder()
                     .status(StatusCode::NOT_FOUND)
                     .body(ApiError::QuestionNotFound.to_string())
                     .unwrap(),

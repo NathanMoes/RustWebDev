@@ -1,54 +1,110 @@
+use std::collections::HashSet;
+
 use crate::*;
 
 /// Application state struct
 /// This struct is used to hold the state of the application, which is currently only the questions for the API
 #[derive(Clone, Debug)]
-pub struct AppState {
-    pub questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
-}
+pub struct AppState(pub PgPool);
 
 /// Implementing the AppState struct with basic functions to use for API and state management operations
 impl AppState {
-    pub fn new() -> Self {
-        AppState {
-            questions: Arc::new(RwLock::new(self::AppState::init())),
-        }
-    }
+    pub async fn new() -> Result<Self, Box<dyn Error>> {
+        use std::env::var;
 
-    /// Function to initialize the questions hashmap by reading in the questions from a json file
-    pub fn init() -> HashMap<QuestionId, Question> {
-        let file = include_str!("../questions.json");
-        let questions: HashMap<QuestionId, Question> =
-            serde_json::from_str::<HashMap<QuestionId, Question>>(file)
-                .unwrap()
-                .into_iter()
-                .collect();
-        questions
+        let password = var("PG_PASSWORD")?;
+        let url = format!(
+            "postgres://{}:{}@{}:5432/{}",
+            var("PG_USER")?,
+            password.trim(),
+            var("PG_HOST")?,
+            var("PG_DBNAME")?,
+        );
+        let pool = PgPool::connect(&url).await?;
+        sqlx::migrate!().run(&pool).await?;
+        Ok(AppState(pool))
     }
 
     /// Function to get a question from the questions hashmap
-    pub async fn get_question(&self, id: &QuestionId) -> Option<Question> {
-        self.questions.read().await.get(id).cloned()
+    pub async fn get_question(&self, id: &QuestionId) -> Result<Option<Question>, Box<dyn Error>> {
+        let row = sqlx::query(r#"SELECT * FROM questions WHERE id = $1;"#)
+            .bind(id.0)
+            .fetch_one(&self.0)
+            .await?;
+
+        let tags: Option<Vec<String>> = row.try_get("tags")?;
+        let tags = tags.map(|tags| tags.into_iter().collect::<HashSet<String>>());
+
+        Ok(Some(Question {
+            id: QuestionId(row.get(0)),
+            title: row.get(1),
+            content: row.get(2),
+            tags,
+        }))
+    }
+
+    /// Function to get all questions
+    pub async fn get_all_questions(&self) -> Result<Vec<Question>, Box<dyn Error>> {
+        let mut questions = Vec::new();
+        let rows = sqlx::query(r#"SELECT * FROM questions;"#)
+            .fetch_all(&self.0)
+            .await?;
+        for row in rows {
+            let tags: Option<Vec<String>> = row.try_get("tags")?;
+            let tags = tags.map(|tags| tags.into_iter().collect::<HashSet<String>>());
+            questions.push(Question {
+                id: QuestionId(row.get(0)),
+                title: row.get(1),
+                content: row.get(2),
+                tags,
+            });
+        }
+        Ok(questions)
     }
 
     /// Function to add a question to the questions hashmap
-    pub async fn add_question(self, question: Question) -> Self {
-        self.questions
-            .write()
-            .await
-            .insert(question.id.clone(), question);
-        self
+    pub async fn add_question(self, question: Question) -> Result<(), sqlx::Error> {
+        let tx = Pool::begin(&self.0).await?;
+        let tags = question
+            .tags
+            .map(|tags| tags.into_iter().collect::<Vec<String>>());
+        sqlx::query(r#"INSERT INTO questions (title, content, tags) VALUES ($1, $2, $3);"#)
+            .bind(question.title)
+            .bind(question.content)
+            .bind(&tags)
+            .execute(&self.0)
+            .await?;
+
+        tx.commit().await
     }
 
     /// Function to delete a question from the questions hashmap
-    pub async fn delete_question(self, id: &QuestionId) -> Self {
-        self.questions.write().await.remove(id);
-        self
+    pub async fn delete_question(self, id: &QuestionId) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"DELETE FROM questions WHERE id = $1;"#)
+            .bind(id.0)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
     }
 
     /// Function to update a question in the questions hashmap
-    pub async fn update_question(self, id: &QuestionId, question: Question) -> Self {
-        self.questions.write().await.insert(id.clone(), question);
-        self
+    pub async fn update_question(
+        self,
+        id: &QuestionId,
+        question: Question,
+    ) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        let tags = question
+            .tags
+            .map(|tags| serde_json::to_value(tags).unwrap());
+        sqlx::query(r#"UPDATE questions SET title = $1, content = $2, tags = $3 WHERE id = $4;"#)
+            .bind(question.title)
+            .bind(question.content)
+            .bind(tags)
+            .bind(id.0)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
     }
 }

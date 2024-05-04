@@ -10,12 +10,10 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
+use sqlx::{self, postgres::PgPool, Pool, Row};
+use std::error::Error;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 use tower_http::trace;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -58,14 +56,14 @@ async fn main() {
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
         .max_age(Duration::from_secs(60) * 10); // 10 minutes, was just toying with cors
-    let state = AppState::new();
+    let state = AppState::new().await.unwrap();
     let app = Router::new()
         .route("/", get(get_entry_point))
         .route("/questions", get(get_questions))
         .route("/questions", post(post_question))
         .route("/question", get(get_question))
         .route("/questions/:id", put(put_question))
-        .route("/questions/:id", delete(delete_question))
+        .route("/questions", delete(delete_question))
         .route("/answers", post(handle_not_found))
         .layer(cors)
         .layer(trace_layer)

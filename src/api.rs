@@ -48,16 +48,15 @@ pub async fn get_questions(
     State(state): State<AppState>,
     Query(Pagination { start, end }): Query<Pagination>,
 ) -> impl IntoResponse {
+    let questions = state.get_all_questions().await.unwrap();
     if start.is_none() && end.is_none() {
         info!("Getting all questions");
-        let questions = state.questions.read().await;
         Response::builder()
             .status(StatusCode::OK)
             .body(serde_json::to_string_pretty(&questions.clone()).unwrap())
             .unwrap()
     } else {
-        let questions = state.questions.read().await;
-        let mut result = HashMap::new();
+        let mut result = Vec::new();
         let start_index = match start {
             Some(s) => s.0,
             None => {
@@ -76,10 +75,9 @@ pub async fn get_questions(
                     .unwrap();
             }
         };
-        for (id, question) in questions.iter() {
-            let id_index = id.0;
-            if id_index >= start_index && id_index <= end_index {
-                result.insert(id.clone(), question.clone());
+        for question in questions {
+            if question.id.0 >= start_index && question.id.0 <= end_index {
+                result.push(question);
             }
         }
         Response::builder()
@@ -100,28 +98,31 @@ pub async fn delete_question(
     State(state): State<AppState>,
     Query(IdParam { id }): Query<IdParam>,
 ) -> impl IntoResponse {
-    match id {
-        Some(id) => {
-            let question_id = QuestionId(id);
-            match state.get_question(&question_id).await {
-                Some(_) => {
-                    state.delete_question(&question_id).await;
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .body("Question deleted".to_string())
-                        .unwrap()
-                }
-                None => Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .body(ApiError::QuestionNotFound.to_string())
-                    .unwrap(),
-            }
-        }
-        None => Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(ApiError::MissingParameters.to_string())
-            .unwrap(),
+    let question_id = QuestionId(id.unwrap());
+    if state.get_question(&question_id).await.is_err() {
+        return Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(ApiError::QuestionNotFound.to_string())
+            .unwrap();
     }
+    match state.delete_question(&question_id).await {
+        Ok(_) => (),
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Failed to delete question".into())
+                .unwrap();
+        }
+    }
+    Response::builder()
+        .status(StatusCode::OK)
+        .body("Question deleted".to_string())
+        .unwrap_or_else(|_| {
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Failed to delete question".into())
+                .unwrap()
+        })
 }
 
 /// API function to handle request to update a question in the questions "Database"
@@ -135,20 +136,33 @@ pub async fn put_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
 ) -> impl IntoResponse {
-    let question_id = question.id.clone();
-    match state.get_question(&question_id).await {
-        Some(_) => {
-            state.update_question(&question_id, question).await;
-            Response::builder()
-                .status(StatusCode::OK)
-                .body("Question updated".to_string())
-                .unwrap()
-        }
-        None => Response::builder()
+    if state.get_question(&question.id).await.is_err() {
+        return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(ApiError::QuestionNotFound.to_string())
-            .unwrap(),
+            .unwrap();
     }
+    match state
+        .update_question(&question.id, question.to_owned())
+        .await
+    {
+        Ok(_) => (),
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Failed to update question".into())
+                .unwrap();
+        }
+    }
+    Response::builder()
+        .status(StatusCode::OK)
+        .body("Question updated".to_string())
+        .unwrap_or_else(|_| {
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Failed to update question".into())
+                .unwrap()
+        })
 }
 
 /// A parameter struct for the question id
@@ -161,7 +175,7 @@ pub async fn put_question(
 /// }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdParam {
-    pub id: Option<u32>,
+    pub id: Option<i32>,
 }
 
 /// Function to post a question to the "database"
@@ -177,16 +191,20 @@ pub async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
 ) -> impl IntoResponse {
-    state.add_question(question).await;
-    Response::builder()
-        .status(StatusCode::OK)
-        .body("Question added".to_string())
-        .unwrap_or_else(|_| {
-            Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body("Failed to add question".into())
+    match state.add_question(question).await {
+        Ok(_) => {
+            return Response::builder()
+                .status(StatusCode::OK)
+                .body("Question added".to_string())
                 .unwrap()
-        })
+        }
+        Err(error) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string())
+                .unwrap();
+        }
+    }
 }
 
 /// An enum to represent the possible errors that can occur in the API
