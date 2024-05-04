@@ -2,6 +2,24 @@ use std::collections::HashSet;
 
 use crate::*;
 
+/// An account struct to represent an account in the database
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct Account {
+    #[schema(example = "moes@pdx.edu")]
+    pub email: String,
+    #[schema(example = "someHashOfAPassword")]
+    pub password: String,
+}
+
+/// An answer struct to represent an answer in the database
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct Answer {
+    #[schema(example = "This is an answer to the question")]
+    pub content: String,
+    #[schema(example = "1")]
+    pub question_id: QuestionId,
+}
+
 /// Application state struct
 /// This struct is used to hold the state of the application, which is currently only the questions for the API
 #[derive(Clone, Debug)]
@@ -116,6 +134,104 @@ impl AppState {
             .bind(question.content)
             .bind(tags)
             .bind(id.0)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn add_answer(self, answer: Answer) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"INSERT INTO answers (corresponding_question, content) VALUES ($1, $2);"#)
+            .bind(answer.question_id.0)
+            .bind(answer.content)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn get_answers(
+        &self,
+        question_id: &QuestionId,
+    ) -> Result<Vec<Answer>, Box<dyn Error>> {
+        let mut answers = Vec::new();
+        let rows = sqlx::query(r#"SELECT * FROM answers WHERE corresponding_question = $1;"#)
+            .bind(question_id.0)
+            .fetch_all(&self.0)
+            .await?;
+        for row in rows {
+            answers.push(Answer {
+                content: row.get("content"),
+                question_id: QuestionId(row.get("corresponding_question")),
+            });
+        }
+        Ok(answers)
+    }
+
+    pub async fn delete_answer(self, question_id: &QuestionId) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"DELETE FROM answers WHERE corresponding_question = $1;"#)
+            .bind(question_id.0)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn update_answer(
+        self,
+        question_id: &QuestionId,
+        answer: Answer,
+    ) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"UPDATE answers SET content = $1 WHERE corresponding_question = $2;"#)
+            .bind(answer.content)
+            .bind(question_id.0)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn add_account(self, acc: Account) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"INSERT INTO accounts (email, password) VALUES ($1, $2);"#)
+            .bind(acc.email)
+            .bind(acc.password)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn get_account(&self, email: &str) -> Result<Option<Account>, Box<dyn Error>> {
+        let row = sqlx::query(r#"SELECT * from accounts WHERE email = $1;"#)
+            .bind(email)
+            .fetch_one(&self.0)
+            .await?;
+
+        let email = match row.try_get("username")? {
+            Some(email) => email,
+            None => return Ok(None),
+        };
+        let password = match row.try_get("password")? {
+            Some(password) => password,
+            None => return Ok(None),
+        };
+        Ok(Some(Account { email, password }))
+    }
+
+    pub async fn delete_account(self, email: &str) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"DELETE FROM accounts WHERE email = $1;"#)
+            .bind(email)
+            .execute(&self.0)
+            .await?;
+        Ok(tx.commit().await?)
+    }
+
+    pub async fn update_account(self, email: &str, acc: Account) -> Result<(), Box<dyn Error>> {
+        let tx = Pool::begin(&self.0).await?;
+        sqlx::query(r#"UPDATE accounts SET email = $1, password = $2 WHERE email = $3;"#)
+            .bind(acc.email)
+            .bind(acc.password)
+            .bind(email)
             .execute(&self.0)
             .await?;
         Ok(tx.commit().await?)

@@ -23,10 +23,16 @@ mod api;
 mod database;
 mod question;
 mod web;
-use crate::api::{delete_question, get_questions, post_question, put_question};
+use crate::api::{
+    delete_account, delete_answer, delete_question, get_account, get_answers, get_questions,
+    post_account, post_answer, post_question, put_account, put_answer, put_question,
+};
 use crate::question::{Question, QuestionId};
 use crate::web::{get_entry_point, get_question};
 use database::AppState;
+use utoipa_rapidoc::RapiDoc;
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
 
 /// API function to handle a not found error instead of other hard coding stuff. Will expand further in the future
 async fn handle_not_found() -> impl IntoResponse {
@@ -56,6 +62,10 @@ async fn main() {
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
         .max_age(Duration::from_secs(60) * 10); // 10 minutes, was just toying with cors
+    let swagger_ui =
+        SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api::ApiDoc::openapi());
+    let redoc_ui = Redoc::with_url("/redoc", api::ApiDoc::openapi());
+    let rapidoc_ui = RapiDoc::new("/api-docs/openapi.json").path("/rapidoc");
     let state = AppState::new().await.unwrap();
     let app = Router::new()
         .route("/", get(get_entry_point))
@@ -64,7 +74,20 @@ async fn main() {
         .route("/question", get(get_question))
         .route("/questions", put(put_question))
         .route("/questions", delete(delete_question))
-        .route("/answers", post(handle_not_found))
+        // The following routes are for the answers portion of the API
+        .route("/answers", post(post_answer))
+        .route("/answers", delete(delete_answer))
+        .route("/answers", put(put_answer))
+        .route("/answers", get(get_answers))
+        // The following routes are for the accounts portion of the API
+        .route("/accounts", post(post_account))
+        .route("/accounts", delete(delete_account))
+        .route("/accounts", put(put_account))
+        .route("/accounts", get(get_account))
+        // Layers
+        .merge(swagger_ui)
+        .merge(redoc_ui)
+        .merge(rapidoc_ui)
         .layer(cors)
         .layer(trace_layer)
         .with_state(state)

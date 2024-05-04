@@ -9,10 +9,18 @@ use crate::*;
         get_questions,
         delete_question,
         put_question,
-        post_question
+        post_question,
+        post_account,
+        get_account,
+        delete_account,
+        put_account,
+        get_answers,
+        delete_answer,
+        put_answer,
+        post_answer,
     ),
     components(
-        schemas(Question, ApiError),
+        schemas(Question, ApiError, Account, Answer),
     ),
     tags(
         (name = "Question", description = "Questions API")
@@ -195,6 +203,20 @@ pub struct IdParam {
     pub id: Option<i32>,
 }
 
+/// A parameter struct for the user email
+///
+/// This struct is used to get the user email from the query parameters
+/// ##Example:
+/// ```
+/// {
+///  "email": "moes@pdx.edu"
+/// }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserAccountInfo {
+    pub email: Option<String>,
+    pub password: Option<String>,
+}
+
 /// Function to post a question to the "database"
 ///
 /// Currently only modifies the state of the application by adding a question to the questions hashmap, but will add write to file soon
@@ -222,6 +244,231 @@ pub async fn post_question(
                 .body(error.to_string())
                 .unwrap()
         }
+    }
+}
+
+/// Function to create an account in the "database"
+///
+#[instrument]
+#[utoipa::path(post, path = "/account", responses((
+    status = 200,
+    description = "Account added",
+    body = None
+),
+(status = 500, description = "Failed to add account", body = ApiError)))]
+pub async fn post_account(
+    State(state): State<AppState>,
+    Json(account): Json<Account>,
+) -> impl IntoResponse {
+    match state.add_account(account).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Account added".to_string())
+            .unwrap(),
+        Err(error) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(error.to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to get an account from the "database"
+#[instrument]
+#[utoipa::path(get, path = "/account", responses((
+    status = 200,
+    description = "Returns all accounts",
+    body = None
+),
+(status = 404, description = "Account not found", body = ApiError)))]
+pub async fn get_account(
+    State(state): State<AppState>,
+    Query(UserAccountInfo { email, password }): Query<UserAccountInfo>,
+) -> impl IntoResponse {
+    let email = match email {
+        Some(email) => email,
+        None => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(ApiError::MissingParameters.to_string())
+                .unwrap();
+        }
+    };
+    match state.get_account(&email).await {
+        Ok(account) => Response::builder()
+            .status(StatusCode::OK)
+            .body(serde_json::to_string_pretty(&account).unwrap())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(ApiError::QuestionNotFound.to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to delete an account from the "database"
+#[instrument]
+#[utoipa::path(delete, path = "/account", responses((
+    status = 200,
+    description = "Account deleted",
+    body = None
+),
+(status = 404, description = "Account not found", body = ApiError)))]
+pub async fn delete_account(
+    State(state): State<AppState>,
+    Query(UserAccountInfo { email, password }): Query<UserAccountInfo>,
+) -> impl IntoResponse {
+    let email = match email {
+        Some(email) => email,
+        None => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(ApiError::MissingParameters.to_string())
+                .unwrap();
+        }
+    };
+    match state.delete_account(&email).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Account deleted".to_string())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(ApiError::QuestionNotFound.to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to update an account in the "database"
+#[instrument]
+#[utoipa::path(put, path = "/account", responses((
+    status = 200,
+    description = "Account updated",
+    body = None
+),
+(status = 404, description = "Account not found", body = ApiError)))]
+pub async fn put_account(
+    State(state): State<AppState>,
+    Query(UserAccountInfo { email, password }): Query<UserAccountInfo>,
+    Json(account): Json<Account>,
+) -> impl IntoResponse {
+    let email = match email {
+        Some(email) => email,
+        None => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(ApiError::MissingParameters.to_string())
+                .unwrap();
+        }
+    };
+    match state.update_account(&email, account).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Account updated".to_string())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(ApiError::QuestionNotFound.to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to get an answer from the "database"
+#[instrument]
+#[utoipa::path(get, path = "/answers", responses((
+    status = 200,
+    description = "Returns all answers for a question",
+    body = None
+),
+(status = 404, description = "Question not found", body = ApiError)))]
+pub async fn get_answers(
+    State(state): State<AppState>,
+    Query(IdParam { id }): Query<IdParam>,
+) -> impl IntoResponse {
+    let question_id = QuestionId(id.unwrap());
+    match state.get_answers(&question_id).await {
+        Ok(answer) => Response::builder()
+            .status(StatusCode::OK)
+            .body(serde_json::to_string_pretty(&answer).unwrap())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(ApiError::QuestionNotFound.to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to delete an answer from the "database"
+#[instrument]
+#[utoipa::path(delete, path = "/answers/:id", responses((
+    status = 200,
+    description = "Answer deleted",
+    body = None
+),
+(status = 500, description = "Failed to delete answer", body = ApiError)))]
+pub async fn delete_answer(
+    State(state): State<AppState>,
+    Query(IdParam { id }): Query<IdParam>,
+) -> impl IntoResponse {
+    let answer_id = QuestionId(id.unwrap());
+    match state.delete_answer(&answer_id).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Answer deleted".to_string())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body("Failed to delete answer".to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to update an answer in the "database"
+#[instrument]
+#[utoipa::path(put, path = "/answers/:id", responses((
+    status = 200,
+    description = "Answer updated",
+    body = None
+),
+(status = 500, description = "Failed to update answer", body = ApiError)))]
+pub async fn put_answer(
+    State(state): State<AppState>,
+    Query(IdParam { id }): Query<IdParam>,
+    Json(answer): Json<Answer>,
+) -> impl IntoResponse {
+    let answer_id = QuestionId(id.unwrap());
+    match state.update_answer(&answer_id, answer).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Answer updated".to_string())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body("Failed to update answer".to_string())
+            .unwrap(),
+    }
+}
+
+/// Function to create an answer in the "database"
+#[instrument]
+#[utoipa::path(post, path = "/answers", responses((
+    status = 200,
+    description = "Answer added",
+    body = None
+),
+(status = 500, description = "Failed to add answer", body = ApiError)))]
+pub async fn post_answer(
+    State(state): State<AppState>,
+    Json(answer): Json<Answer>,
+) -> impl IntoResponse {
+    match state.add_answer(answer).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body("Answer added".to_string())
+            .unwrap(),
+        Err(error) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(error.to_string())
+            .unwrap(),
     }
 }
 
