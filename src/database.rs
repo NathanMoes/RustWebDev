@@ -43,13 +43,16 @@ impl AppState {
     pub async fn new() -> Result<Self, Box<dyn Error>> {
         use std::env::var;
 
+        let port = var("PG_PORT")
+            .map(|val| val.parse().expect("PG_PORT should be a valid u16"))
+            .unwrap_or(6565);
         let password = var("PG_PASSWORD")?;
         let url = format!(
-            "postgres://{}:{}@{}:5432/{}",
+            "postgres://{}:{}@{}:{}",
             var("PG_USER")?,
             password.trim(),
             var("PG_HOST")?,
-            var("PG_DBNAME")?,
+            port
         );
         let pool = PgPool::connect(&url).await?;
         sqlx::migrate!().run(&pool).await?;
