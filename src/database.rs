@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use crate::*;
+use std::collections::HashSet;
 
 /// An account struct to represent an account in the database
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]

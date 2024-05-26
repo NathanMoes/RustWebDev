@@ -3,6 +3,8 @@ use tracing::{info, instrument};
 use crate::database::*;
 use crate::*;
 
+use self::bad_words_api::check_profanity;
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -166,8 +168,8 @@ pub async fn put_question(
     }
     let updated_question = Question {
         id: question_id.clone(),
-        title: question.title,
-        content: question.content,
+        title: check_profanity(question.title).await.unwrap(),
+        content: check_profanity(question.content).await.unwrap(),
         tags: question.tags,
     };
     match state.update_question(&question_id, updated_question).await {
@@ -231,6 +233,12 @@ pub async fn post_question(
     State(state): State<AppState>,
     Json(question): Json<Question>,
 ) -> impl IntoResponse {
+    let question = Question {
+        id: QuestionId(0),
+        title: check_profanity(question.title.clone()).await.unwrap(),
+        content: check_profanity(question.content.clone()).await.unwrap(),
+        tags: question.tags.clone(),
+    };
     match state.add_question(question).await {
         Ok(_) => {
             return Response::builder()
@@ -455,6 +463,10 @@ pub async fn put_answer(
     Json(answer): Json<Answer>,
 ) -> impl IntoResponse {
     let answer_id = QuestionId(id.unwrap());
+    let answer = Answer {
+        question_id: answer.question_id,
+        content: check_profanity(answer.content).await.unwrap(),
+    };
     match state.update_answer(&answer_id, answer).await {
         Ok(_) => Response::builder()
             .status(StatusCode::OK)
@@ -482,6 +494,10 @@ pub async fn post_answer(
     State(state): State<AppState>,
     Json(answer): Json<Answer>,
 ) -> impl IntoResponse {
+    let answer = Answer {
+        question_id: answer.question_id,
+        content: check_profanity(answer.content).await.unwrap(),
+    };
     match state.add_answer(answer).await {
         Ok(_) => Response::builder()
             .status(StatusCode::OK)
@@ -514,6 +530,12 @@ pub enum ApiError {
     AccountNotFound,
     #[error("Answer not found")]
     AnswerNotFound,
+    #[error("Reqwest API error: {0}")]
+    ReqwestAPIError(#[from] reqwest::Error),
+    #[error("Middleware Reqwest API error: {0}")]
+    MiddlewareReqwestAPIError(#[from] reqwest_middleware::Error),
+    #[error("Client error: {0}")]
+    ClientError(reqwest::Error),
 }
 
 /// Implementing the IntoResponse trait for the ApiError enum
@@ -546,6 +568,18 @@ impl IntoResponse for ApiError {
             ApiError::AnswerNotFound => Response::builder()
                 .status(StatusCode::NOT_FOUND)
                 .body("Answer not found".to_string().into())
+                .unwrap(),
+            ApiError::ReqwestAPIError(error) => Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string().into())
+                .unwrap(),
+            ApiError::MiddlewareReqwestAPIError(error) => Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string().into())
+                .unwrap(),
+            ApiError::ClientError(error) => Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error.to_string().into())
                 .unwrap(),
         }
     }

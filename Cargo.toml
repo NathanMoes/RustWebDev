@@ -8,6 +8,7 @@ authors = ["Nathan Moes <moes@pdx.edu>", "Bastian Gruber"]
 
 [dependencies]
 axum = "0.7.5"
+axum-extra = { version = "0.9.3", features = ["typed-header"] }
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 clap = { version = "4.5.4", features = ["derive", "env", "unicode", "wrap_help", "cargo"] }
@@ -29,6 +30,7 @@ log4rs = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 sqlx = "0.7.4"
 sqlx-cli = "0.7.4"
-reqwest = "0.12.4"
+reqwest = { version = "0.12.4", features = ["json"] }
 reqwest-middleware = "0.3.0"
 reqwest-retry = "0.5.0"
+jsonwebtoken = "9.3.0"
