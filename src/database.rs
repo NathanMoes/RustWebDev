@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 
-use crate::{auth::JwtKeys, *};
+use crate::{
+    auth::{make_jwt_keys, JwtKeys},
+    *,
+};
 use std::collections::HashSet;
 
 /// An account struct to represent an account in the database
@@ -69,7 +72,7 @@ impl AppState {
         );
         let pool = PgPool::connect(&url).await?;
         sqlx::migrate!().run(&pool).await?;
-        let keys = JwtKeys::new(var("JWT_SECRET").unwrap().as_bytes());
+        let keys = make_jwt_keys().await?;
         Ok(AppState(pool, keys))
     }
 

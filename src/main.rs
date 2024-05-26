@@ -16,6 +16,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::trace;
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::{OpenApi, ToSchema};
 extern crate thiserror;
@@ -29,6 +30,7 @@ use crate::api::{
     delete_account, delete_answer, delete_question, get_account, get_answers, get_questions,
     post_account, post_answer, post_question, put_account, put_answer, put_question,
 };
+use crate::auth::login;
 use crate::question::{Question, QuestionId};
 use crate::web::{get_entry_point, get_question};
 use database::AppState;
@@ -68,6 +70,10 @@ async fn main() {
         SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api::ApiDoc::openapi());
     let redoc_ui = Redoc::with_url("/redoc", api::ApiDoc::openapi());
     let rapidoc_ui = RapiDoc::new("/api-docs/openapi.json").path("/rapidoc");
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnSessionEnd);
     let state = AppState::new().await.unwrap();
     let app = Router::new()
         .route("/", get(get_entry_point))
@@ -86,12 +92,15 @@ async fn main() {
         .route("/accounts", delete(delete_account))
         .route("/accounts", put(put_account))
         .route("/accounts", get(get_account))
+        // auth stuffs
+        .route("/login", get(login))
         // Layers
         .merge(swagger_ui)
         .merge(redoc_ui)
         .merge(rapidoc_ui)
         .layer(cors)
         .layer(trace_layer)
+        .layer(session_layer)
         .with_state(state)
         .fallback(handle_not_found);
 

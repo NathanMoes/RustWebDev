@@ -18,3 +18,10 @@ CREATE TABLE IF NOT EXISTS answers (
     email VARCHAR(255) NOT NULL PRIMARY KEY,
     password VARCHAR(255) NOT NULL
  );
+
+ CREATE TABLE IF NOT EXISTS passwords (
+  client_id TEXT PRIMARY KEY,
+  client_secret TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL
+);
