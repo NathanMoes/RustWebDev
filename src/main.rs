@@ -20,6 +20,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::{OpenApi, ToSchema};
 extern crate thiserror;
 mod api;
+mod auth;
 mod bad_words_api;
 mod database;
 mod question;

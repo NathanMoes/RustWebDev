@@ -1,13 +1,27 @@
-use crate::*;
+use chrono::{DateTime, Utc};
+
+use crate::{auth::JwtKeys, *};
 use std::collections::HashSet;
 
 /// An account struct to represent an account in the database
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema, Clone)]
 pub struct Account {
+    #[schema(example = "1")]
+    pub id: AccountId,
     #[schema(example = "moes@pdx.edu")]
     pub email: String,
     #[schema(example = "someHashOfAPassword")]
     pub password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, sqlx::Type)]
+pub struct AccountId(pub i32);
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Session {
+    pub exp: DateTime<Utc>,
+    pub account_id: AccountId,
+    pub nbf: DateTime<Utc>,
 }
 
 /// An answer struct to represent an answer in the database
@@ -22,7 +36,7 @@ pub struct Answer {
 /// Application state struct
 /// This struct is used to hold the state of the application, which is currently only the questions for the API
 #[derive(Clone, Debug)]
-pub struct AppState(pub PgPool);
+pub struct AppState(pub PgPool, pub JwtKeys);
 
 /// Implementing the AppState struct with basic functions to use for API and state management operations
 impl AppState {
@@ -55,7 +69,8 @@ impl AppState {
         );
         let pool = PgPool::connect(&url).await?;
         sqlx::migrate!().run(&pool).await?;
-        Ok(AppState(pool))
+        let keys = JwtKeys::new(var("JWT_SECRET").unwrap().as_bytes());
+        Ok(AppState(pool, keys))
     }
 
     /// Function to get a question from the questions database, by id
@@ -212,11 +227,17 @@ impl AppState {
             Some(email) => email,
             None => return Ok(None),
         };
-        let password = match row.try_get("password")? {
-            Some(password) => password,
-            None => return Ok(None),
-        };
-        Ok(Some(Account { email, password }))
+        let password = row.try_get("password")?;
+        let account_id = row.try_get("id")?;
+        if let Some(id) = account_id {
+            Ok(Some(Account {
+                id,
+                email,
+                password,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     pub async fn delete_account(self, email: &str) -> Result<(), Box<dyn Error>> {
