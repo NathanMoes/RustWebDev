@@ -33,6 +33,6 @@ fn app() -> Html {
 
 fn main() {
     set_panic_hook();
-    init_with_level(Level::Debug).expect("Failed to initialize logger");
+    init_with_level(Level::Info).expect("Failed to initialize logger");
     yew::start_app::<App>();
 }

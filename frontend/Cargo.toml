@@ -18,4 +18,4 @@ gloo-net = "0.2"
 yew-router = "0.16"
 console_error_panic_hook = "0.1.7"
 console_log = "0.2.0"
-log = "0.4"
+log = { version = "0.4", features = ["max_level_info"] }

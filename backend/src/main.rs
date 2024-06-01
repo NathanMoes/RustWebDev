@@ -62,7 +62,7 @@ async fn main() {
         .on_response(trace::DefaultOnResponse::new().level(tracing::Level::INFO));
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true)
         .max_age(Duration::from_secs(60) * 10); // 10 minutes, was just toying with cors

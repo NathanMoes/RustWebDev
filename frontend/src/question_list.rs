@@ -2,9 +2,11 @@ use std::collections::HashSet;
 
 use crate::*;
 use gloo_net::http::Request;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::rc::Rc;
+use web_sys::window;
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Clone, PartialEq, Serialize)]
 pub struct Question {
     pub id: u32,
     pub title: String,
@@ -15,7 +17,26 @@ pub struct Question {
 
 #[function_component(QuestionList)]
 pub fn question_form() -> Html {
-    let questions = use_state(Vec::new);
+    let questions = use_state(Vec::<Question>::new);
+
+    fn handle_delete_question(id: u32) {
+        wasm_bindgen_futures::spawn_local(async move {
+            let request = Request::delete(&format!("http://localhost:8000/questions?id={}", id))
+                .send()
+                .await;
+            match request {
+                Ok(response) => {
+                    if response.ok() {
+                        // Success, refresh the list of questions
+                        window().unwrap().location().reload().unwrap();
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error deleting question: {}", err);
+                }
+            }
+        });
+    }
 
     {
         let questions = questions.clone();
@@ -49,6 +70,7 @@ pub fn question_form() -> Html {
             <h1>{ "Questions" }</h1>
             <pre>{
                 questions.iter().map(|question| {
+                    let id = question.id;
                     html! {
                         <div class="question">
                             <div class="id">{ question.id }</div>
@@ -61,6 +83,10 @@ pub fn question_form() -> Html {
                                     }).collect::<Html>()
                                 }).unwrap_or_else(|| html! {})
                             }</div>
+                            <button>{ "Edit" }</button>
+                            <button onclick={move |_| {
+                                handle_delete_question(id);
+                            }}>{ "Delete" }</button>
                         </div>
                     }
                 }).collect::<Html>()
