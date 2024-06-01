@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::*;
 use gloo_net::http::Request;
 use serde::Serialize;
@@ -5,9 +7,10 @@ use web_sys::HtmlInputElement;
 
 #[derive(Serialize)]
 struct QuestionData {
+    id: u32,
     title: String,
     content: String,
-    tags: Option<String>,
+    tags: Option<HashSet<String>>,
 }
 
 #[function_component(QuestionForm)]
@@ -24,10 +27,20 @@ pub fn question_form() -> Html {
         Callback::from(move |e: FocusEvent| {
             e.prevent_default();
 
+            let tags_set = tags
+                .split(',')
+                .map(|tag| tag.trim().to_string())
+                .collect::<HashSet<String>>();
+
             let question_data = QuestionData {
+                id: 0,
                 title: (*title).clone(),
                 content: (*content).clone(),
-                tags: Some((*tags).clone()),
+                tags: if tags_set.is_empty() {
+                    None
+                } else {
+                    Some(tags_set.iter().cloned().collect::<HashSet<String>>())
+                },
             };
 
             wasm_bindgen_futures::spawn_local(async move {
@@ -37,8 +50,17 @@ pub fn question_form() -> Html {
 
                 let response = request.send().await;
                 match response {
-                    Ok(_) => {
-                        // Success, redirect to main page/list page?
+                    Ok(response) => {
+                        if response.ok() {
+                            // Success, redirect to main page/list page
+                        } else {
+                            // Handle error response
+                            let error_message = response
+                                .text()
+                                .await
+                                .unwrap_or_else(|_| "Unknown error".to_string());
+                            eprintln!("Error submitting question: {}", error_message);
+                        }
                     }
                     Err(err) => {
                         eprintln!("Error submitting question: {}", err);
