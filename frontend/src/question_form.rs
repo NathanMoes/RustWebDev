@@ -15,6 +15,7 @@ struct QuestionData {
 
 #[function_component(QuestionForm)]
 pub fn question_form() -> Html {
+    let history = use_history().unwrap();
     let title = use_state(String::new);
     let content = use_state(String::new);
     let tags = use_state(String::new);
@@ -23,6 +24,7 @@ pub fn question_form() -> Html {
         let title = title.clone();
         let content = content.clone();
         let tags = tags.clone();
+        let history_clone = history.clone();
 
         Callback::from(move |e: FocusEvent| {
             e.prevent_default();
@@ -43,6 +45,8 @@ pub fn question_form() -> Html {
                 },
             };
 
+            let history_clone_for_async = history_clone.clone(); // Clone the history_clone value
+
             wasm_bindgen_futures::spawn_local(async move {
                 let request = Request::post("http://localhost:8000/questions")
                     .json(&question_data)
@@ -53,17 +57,19 @@ pub fn question_form() -> Html {
                     Ok(response) => {
                         if response.ok() {
                             // Success, redirect to main page/list page
+                            history_clone_for_async.push(Route::QuestionList);
+                            web_sys::console::log_1(&"Question submitted successfully".into());
                         } else {
                             // Handle error response
                             let error_message = response
                                 .text()
                                 .await
                                 .unwrap_or_else(|_| "Unknown error".to_string());
-                            eprintln!("Error submitting question: {}", error_message);
+                            web_sys::console::error_1(&error_message.into());
                         }
                     }
                     Err(err) => {
-                        eprintln!("Error submitting question: {}", err);
+                        web_sys::console::error_1(&err.to_string().into());
                     }
                 }
             });

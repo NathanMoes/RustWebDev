@@ -1,7 +1,10 @@
 // use web_sys::{HtmlInputElement, SubmitEvent};
+#![allow(clippy::let_unit_value)]
+use console_error_panic_hook::set_once as set_panic_hook;
+use console_log::init_with_level;
+use log::Level;
 use yew::prelude::*;
 use yew_router::{prelude::*, RenderFn};
-
 mod question_form;
 mod question_list;
 
@@ -18,22 +21,18 @@ enum Route {
 
 #[function_component(App)]
 fn app() -> Html {
-    let render = RenderFn::new(move |route: &Route| match route {
-        Route::QuestionList => {
-            html! { <QuestionList /> }
-        }
-        Route::QuestionForm => {
-            html! { <QuestionForm /> }
-        }
-    });
-
     html! {
         <BrowserRouter>
-            <Switch<Route> render={render} />
+            <Switch<Route> render={RenderFn::new(move |route: &Route| match route {
+                Route::QuestionList => html! { <QuestionList /> },
+                Route::QuestionForm => html! { <QuestionForm /> },
+            })} />
         </BrowserRouter>
     }
 }
 
 fn main() {
+    set_panic_hook();
+    init_with_level(Level::Debug).expect("Failed to initialize logger");
     yew::start_app::<App>();
 }
