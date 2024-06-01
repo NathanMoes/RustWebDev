@@ -10,6 +10,9 @@ authors = ["Nathan Moes <moes@pdx.edu>", "Bastian Gruber"]
 yew = "0.19"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Window", "Request", "RequestInit", "RequestMode", "Response"] }
+web-sys = { version = "0.3", features = ["Window", "Request", "RequestInit", "RequestMode", "Response", "HtmlInputElement", "SubmitEvent"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+anyhow = "1.0"
+gloo-net = "0.2"
+yew-router = "0.16"

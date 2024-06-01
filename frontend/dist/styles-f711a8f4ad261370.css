@@ -1,0 +1,53 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+pre {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+pre .question {
+  margin-bottom: 20px;
+}
+pre .question .id {
+  font-weight: bold;
+  color: #007bff;
+}
+pre .question .title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+pre .question .content {
+  margin-bottom: 10px;
+}
+pre .question .tags {
+  display: flex;
+  flex-wrap: wrap;
+}
+pre .question .tags .tag {
+  background-color: #007bff;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,%22sourceRoot%22:%22%22,%22sources%22:%5B%22../../styles.scss%22%5D,%22names%22:%5B%5D,%22mappings%22:%22AAAA;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;AAEA;EACE;;AAEA;EACE;EACA;;AAGF;EACE;EACA;EACA;;AAGF;EACE;;AAGF;EACE;EACA;;AAEA;EACE;EACA;EACA;EACA;EACA;EACA;EACA%22,%22file%22:%22styles.css%22%7D */
