@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use crate::*;
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
 use web_sys::window;
 
 #[derive(Deserialize, Clone, PartialEq, Serialize)]
