@@ -104,7 +104,7 @@ async fn main() {
         .with_state(state)
         .fallback(handle_not_found);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     tracing::debug!("serving {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
