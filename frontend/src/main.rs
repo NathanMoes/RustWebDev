@@ -16,13 +16,13 @@ use question_form::QuestionForm as Form;
 use question_list::QuestionList as List;
 use question_update::{QuestionFormProps, QuestionUpdate as Update};
 
-#[derive(Clone, Routable, PartialEq, Debug)]
+#[derive(Clone, Routable, PartialEq, Debug, Copy)]
 enum Route {
     #[at("/")]
     List,
     #[at("/questions/add")]
     Form,
-    #[at("/questions/update/{id}")]
+    #[at("/questions/update/:id")]
     Update { id: u32 },
     #[not_found]
     #[at("/404")]

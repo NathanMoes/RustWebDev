@@ -15,6 +15,7 @@ struct QuestionData {
 
 #[derive(Properties, PartialEq)]
 pub struct QuestionFormProps {
+    #[prop_or_default]
     pub question_id: Option<u32>,
 }
 
