@@ -1,6 +1,9 @@
 # Rust Web Example
 
 Backend port: 8000
+Frontend: 8080
+
+To start backend cd into it and then run. Frontend use trunk serve
 
 ## Rust web development repo - Nathan Moes
 
