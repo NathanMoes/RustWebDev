@@ -13,8 +13,13 @@ struct QuestionData {
     tags: Option<HashSet<String>>,
 }
 
-#[function_component(QuestionForm)]
-pub fn question_form() -> Html {
+#[derive(Properties, PartialEq)]
+pub struct QuestionFormProps {
+    pub question_id: Option<u32>,
+}
+
+#[function_component(QuestionUpdate)]
+pub fn question_update(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html {
     let history = use_history().unwrap();
     let title = use_state(String::new);
     let content = use_state(String::new);
@@ -35,7 +40,7 @@ pub fn question_form() -> Html {
                 .collect::<HashSet<String>>();
 
             let question_data = QuestionData {
-                id: 0,
+                id: question_id.unwrap_or(0),
                 title: (*title).clone(),
                 content: (*content).clone(),
                 tags: if tags_set.is_empty() {
@@ -48,9 +53,19 @@ pub fn question_form() -> Html {
             let history_clone_for_async = history_clone.clone();
 
             wasm_bindgen_futures::spawn_local(async move {
-                let request = Request::post("http://localhost:8000/questions")
-                    .json(&question_data)
-                    .unwrap();
+                let url = if let Some(id) = question_id {
+                    format!("http://localhost:8000/questions?id={}", id)
+                } else {
+                    "http://localhost:8000/questions".to_string()
+                };
+
+                let request = if question_id.is_some() {
+                    Request::put(&url)
+                } else {
+                    Request::post(&url)
+                }
+                .json(&question_data)
+                .unwrap();
 
                 let response = request.send().await;
                 match response {
@@ -89,7 +104,7 @@ pub fn question_form() -> Html {
                 <label for="tags">{ "Tags (comma-separated):" }</label>
                 <input type="text" id="tags" class="form-input" oninput={move |e: InputEvent| tags.set(e.target_unchecked_into::<HtmlInputElement>().value())} />
             </div>
-            <button type="submit" class="submit-button">{ "Submit" }</button>
+            <button type="submit" class="submit-button">{ if question_id.is_some() { "Update" } else { "Submit" } }</button>
         </form>
     }
 }

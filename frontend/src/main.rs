@@ -8,18 +8,35 @@ use yew_router::{prelude::*, RenderFn};
 mod components;
 mod question_form;
 mod question_list;
+mod question_update;
 
 use components::footer::Footer;
 use components::header::Header;
-use question_form::QuestionForm;
-use question_list::QuestionList;
+use question_form::QuestionForm as Form;
+use question_list::QuestionList as List;
+use question_update::{QuestionFormProps, QuestionUpdate as Update};
 
-#[derive(Clone, Routable, PartialEq)]
+#[derive(Clone, Routable, PartialEq, Debug)]
 enum Route {
     #[at("/")]
-    QuestionList,
-    #[at("/questions/new")]
-    QuestionForm,
+    List,
+    #[at("/questions/add")]
+    Form,
+    #[at("/questions/update/{id}")]
+    Update { id: u32 },
+    #[not_found]
+    #[at("/404")]
+    NotFound,
+}
+
+#[function_component(NotFound)]
+pub fn not_found() -> Html {
+    html! {
+        <div class="not-found">
+            <h1>{ "404 - Page Not Found" }</h1>
+            <p style={"text-align: center"}>{ "The requested page could not be found." }</p>
+        </div>
+    }
 }
 
 #[function_component(App)]
@@ -27,9 +44,19 @@ fn app() -> Html {
     html! {
         <BrowserRouter>
             <Header />
-            <Switch<Route> render={RenderFn::new(move |route: &Route| match route {
-                Route::QuestionList => html! { <QuestionList /> },
-                Route::QuestionForm => html! { <QuestionForm /> },
+            <Switch<Route> render={RenderFn::new(move |route: &Route| {
+                log::info!("Matched route: {:?}", route);
+                match route {
+                    Route::List => html! { <List /> },
+                    Route::Form => html! { <Form /> },
+                    Route::Update { id } => {
+                        let props = QuestionFormProps {
+                            question_id: Some(*id),
+                        };
+                        html! { <Update ..props /> }
+                    }
+                    Route::NotFound => html! { <NotFound /> },
+                }
             })} />
             <Footer />
         </BrowserRouter>

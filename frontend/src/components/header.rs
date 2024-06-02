@@ -8,8 +8,8 @@ pub fn header() -> Html {
         <header>
             <nav>
                 <ul>
-                    <li><Link<Route> to={Route::QuestionList}>{ "Question List" }</Link<Route>></li>
-                    <li><Link<Route> to={Route::QuestionForm}>{ "New Question" }</Link<Route>></li>
+                    <li><Link<Route> to={Route::List}>{ "Question List" }</Link<Route>></li>
+                    <li><Link<Route> to={Route::Form}>{ "New Question" }</Link<Route>></li>
                 </ul>
             </nav>
         </header>

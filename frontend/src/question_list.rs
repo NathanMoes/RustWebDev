@@ -84,7 +84,9 @@ pub fn question_form() -> Html {
                                     }).unwrap_or_else(|| html! {})
                                 }</div>
                                 <div class="actions">
-                                    <button>{ "Edit" }</button>
+                                    <button onclick={move |_|{
+                                        window().unwrap().location().set_href(&format!("/questions/update/{}", id)).unwrap();
+                                    }}>{ "Edit" }</button>
                                     <button onclick={move |_| {
                                         handle_delete_question(id);
                                     }}>{ "Delete" }</button>
