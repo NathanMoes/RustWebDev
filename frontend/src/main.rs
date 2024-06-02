@@ -6,12 +6,14 @@ use log::Level;
 use yew::prelude::*;
 use yew_router::{prelude::*, RenderFn};
 mod components;
+mod question;
 mod question_form;
 mod question_list;
 mod question_update;
 
 use components::footer::Footer;
 use components::header::Header;
+use question::QuestionItem;
 use question_form::QuestionForm as Form;
 use question_list::QuestionList as List;
 use question_update::{QuestionFormProps, QuestionUpdate as Update};
@@ -22,6 +24,8 @@ enum Route {
     List,
     #[at("/questions/add")]
     Form,
+    #[at("/question/:id")]
+    Question { id: u32 },
     #[at("/questions/update/:id")]
     Update { id: u32 },
     #[not_found]
@@ -55,6 +59,7 @@ fn app() -> Html {
                         };
                         html! { <Update ..props /> }
                     }
+                    Route::Question { id } => html! { <QuestionItem question_id={*id} /> },
                     Route::NotFound => html! { <NotFound /> },
                 }
             })} />

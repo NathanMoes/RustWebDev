@@ -14,8 +14,14 @@ pub struct Question {
     pub tags: Option<HashSet<String>>,
 }
 
-#[function_component(QuestionList)]
-pub fn question_form() -> Html {
+#[derive(Properties, PartialEq)]
+pub struct QuestionFormProps {
+    #[prop_or_default]
+    pub question_id: Option<u32>,
+}
+
+#[function_component(QuestionItem)]
+pub fn question(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html {
     let questions = use_state(Vec::<Question>::new);
     let history = use_history().unwrap();
 
@@ -44,9 +50,15 @@ pub fn question_form() -> Html {
         use_effect_with_deps(
             move |_| {
                 let questions = questions.clone();
+                let id = question_id.unwrap_or_default();
 
                 wasm_bindgen_futures::spawn_local(async move {
-                    let request = Request::get("http://localhost:8000/questions").send().await;
+                    let request = Request::get(&format!(
+                        "http://localhost:8000/questions?start={}&end={}",
+                        id, id
+                    ))
+                    .send()
+                    .await;
                     match request {
                         Ok(response) => {
                             let questions_data: Vec<Question> =
@@ -73,11 +85,8 @@ pub fn question_form() -> Html {
                     questions.iter().map(|question| {
                         let id = question.id;
                         let history = history.clone();
-                        let item_history = history.clone();
                         html! {
-                            <div class="question" onclick={move |_|{
-                                item_history.push(Route::Question{id})
-                            }}>
+                            <div class="question">
                                 <div class="id">{ question.id }</div>
                                 <div class="title">{ &question.title }</div>
                                 <div class="content">{ &question.content }</div>
