@@ -76,12 +76,12 @@ pub fn question_form() -> Html {
                         let history = history.clone();
                         let item_history = history.clone();
                         html! {
-                            <div class="question" onclick={move |_|{
-                                item_history.push(Route::Question{id})
-                            }}>
+                            <div class="question">
                                 <div class="id">{ question.id }</div>
                                 <div class="title">{ &question.title }</div>
-                                <div class="content">{ &question.content }</div>
+                                <div class="content" onclick={move |_|{
+                                    item_history.push(Route::Question{id})
+                                }}>{ &question.content }</div>
                                 <div class="tags">{
                                     question.tags.as_ref().map(|tags| {
                                         tags.iter().map(|tag| {

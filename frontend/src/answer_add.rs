@@ -54,7 +54,7 @@ pub fn question_form(&QuestionFormProps { question_id }: &QuestionFormProps) -> 
                 match response {
                     Ok(response) => {
                         if response.ok() {
-                            // Success, redirect to main page/list page
+                            // Success, redirect to question we added to
                             history_clone_for_async.push(Route::Question {
                                 id: question_id.unwrap_or_default(),
                             });

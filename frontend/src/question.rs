@@ -53,6 +53,25 @@ pub fn question(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html 
         });
     }
 
+    fn handle_delete_answer(id: u32) {
+        wasm_bindgen_futures::spawn_local(async move {
+            let request = Request::delete(&format!("http://localhost:8000/answers?id={}", id))
+                .send()
+                .await;
+            match request {
+                Ok(response) => {
+                    if response.ok() {
+                        // Success, refresh the list of questions
+                        window().unwrap().location().reload().unwrap();
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error deleting answer: {}", err);
+                }
+            }
+        });
+    }
+
     {
         let question = question.clone();
         let answers = answers.clone();
@@ -144,10 +163,20 @@ pub fn question(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html 
             <div class="answer-list">
                 {
                     answers.iter().map(|answer| {
+                        let id = answer.question_id;
                         html! {
-                            <div class="answer">
-                                <div class="content">{ &answer.content }</div>
-                            </div>
+                            <>
+                                <div class="answer">
+                                    <div class="content">{ &answer.content }
+                                        <div class="actions">
+                                            <button>{ "Edit" }</button>
+                                            <button  onclick={move |_|{
+                                                handle_delete_answer(id);
+                                            }}>{ "Delete" }</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         }
                     }).collect::<Html>()
                 }

@@ -239,3 +239,58 @@ header {
     }
   }
 }
+
+.answer-list {
+  margin-top: 20px;
+
+  .answer {
+    background-color: $background-color;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+
+    .content {
+      margin-bottom: 20px;
+      color: $text-color;
+      position: relative;
+      padding-bottom: 40px;
+
+      .actions {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        display: flex;
+        justify-content: flex-end;
+
+        button {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+
+          &:first-child {
+            background-color: $primary-color;
+            color: #fff;
+            margin-right: 10px;
+
+            &:hover {
+              background-color: darken($primary-color, 10%);
+            }
+          }
+
+          &:last-child {
+            background-color: #dc3545;
+            color: #fff;
+
+            &:hover {
+              background-color: darken(#dc3545, 10%);
+            }
+          }
+        }
+      }
+    }
+  }
+}
