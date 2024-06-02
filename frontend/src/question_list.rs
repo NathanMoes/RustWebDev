@@ -17,6 +17,7 @@ pub struct Question {
 #[function_component(QuestionList)]
 pub fn question_form() -> Html {
     let questions = use_state(Vec::<Question>::new);
+    let history = use_history().unwrap();
 
     fn handle_delete_question(id: u32) {
         wasm_bindgen_futures::spawn_local(async move {
@@ -71,6 +72,7 @@ pub fn question_form() -> Html {
                 {
                     questions.iter().map(|question| {
                         let id = question.id;
+                        let history = history.clone();
                         html! {
                             <div class="question">
                                 <div class="id">{ question.id }</div>
@@ -85,7 +87,7 @@ pub fn question_form() -> Html {
                                 }</div>
                                 <div class="actions">
                                     <button onclick={move |_|{
-                                        window().unwrap().location().set_href(&format!("/questions/update/{}", id)).unwrap();
+                                        history.push(Route::Update{id});
                                     }}>{ "Edit" }</button>
                                     <button onclick={move |_| {
                                         handle_delete_question(id);
