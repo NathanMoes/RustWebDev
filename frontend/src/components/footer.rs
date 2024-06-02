@@ -1,5 +1,6 @@
 use yew::prelude::*;
 
+/// A function component for the footer of the application
 #[function_component(Footer)]
 pub fn footer() -> Html {
     html! {

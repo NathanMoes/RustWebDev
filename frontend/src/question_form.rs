@@ -13,6 +13,7 @@ struct QuestionData {
     tags: Option<HashSet<String>>,
 }
 
+/// A function component form for submitting a new question
 #[function_component(QuestionForm)]
 pub fn question_form() -> Html {
     let history = use_history().unwrap();

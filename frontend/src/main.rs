@@ -18,6 +18,7 @@ use question_form::QuestionForm as Form;
 use question_list::QuestionList as List;
 use question_update::{QuestionFormProps, QuestionUpdate as Update};
 
+/// The routes for the application
 #[derive(Clone, Routable, PartialEq, Debug, Copy)]
 enum Route {
     #[at("/")]
@@ -33,6 +34,7 @@ enum Route {
     NotFound,
 }
 
+/// A component that displays a 404 page
 #[function_component(NotFound)]
 pub fn not_found() -> Html {
     html! {
@@ -43,6 +45,7 @@ pub fn not_found() -> Html {
     }
 }
 
+/// The main application component
 #[function_component(App)]
 fn app() -> Html {
     html! {
@@ -67,6 +70,8 @@ fn app() -> Html {
         </BrowserRouter>
     }
 }
+
+/// The main function
 fn main() {
     set_panic_hook();
     init_with_level(Level::Info).expect("Failed to initialize logger");

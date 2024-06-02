@@ -11,18 +11,21 @@ use axum_extra::{
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
+/// Struct to hold the JWT keys
 #[derive(Clone)]
 pub struct JwtKeys {
     encoding: EncodingKey,
     decoding: DecodingKey,
 }
 
+/// Implement Debug for JwtKeys
 impl fmt::Debug for JwtKeys {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("JwtKeys").finish()
     }
 }
 
+/// Implement new for JwtKeys
 impl JwtKeys {
     pub fn new(secret: &[u8]) -> Self {
         Self {
@@ -32,6 +35,7 @@ impl JwtKeys {
     }
 }
 
+/// Function to create the JWT keys
 pub async fn make_jwt_keys() -> Result<JwtKeys, Box<dyn Error>> {
     use std::env::var;
 
@@ -40,6 +44,7 @@ pub async fn make_jwt_keys() -> Result<JwtKeys, Box<dyn Error>> {
     Ok(JwtKeys::new(secret.trim().as_bytes()))
 }
 
+/// Error types for the auth module
 #[derive(Debug, thiserror::Error, Serialize)]
 pub enum AuthError {
     #[error("wrong credentials")]
@@ -52,18 +57,21 @@ pub enum AuthError {
     InvalidToken,
 }
 
+/// Claims for the JWT token
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     full_name: String,
     email: String,
 }
 
+/// Body of the response for the login endpoint
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AuthBody {
     access_token: String,
     token_type: String,
 }
 
+/// Add in the token to the body of the response
 impl AuthBody {
     fn new(access_token: String) -> Self {
         Self {
@@ -73,15 +81,17 @@ impl AuthBody {
     }
 }
 
+/// Payload for the login endpoint
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AuthPayload {
     client_id: String,
     client_secret: String,
 }
 
+/// Login endpoint
 #[utoipa::path(
     get,
-    path = "/api/v1/login",
+    path = "/login",
     responses(
         (status = 200, description = "login ok", body = AuthBody),
         (status = 400, description = "missing credentials", body = AuthError),
@@ -130,6 +140,7 @@ pub async fn login(State(state): State<AppState>, Json(payload): Json<AuthPayloa
     Json(AuthBody::new(token)).into_response()
 }
 
+/// Implement the FromRequestParts trait for Claims
 #[async_trait]
 impl FromRequestParts<State<AppState>> for Claims {
     type Rejection = AuthError;
@@ -152,6 +163,7 @@ impl FromRequestParts<State<AppState>> for Claims {
     }
 }
 
+/// Implement the IntoResponse trait for AuthError
 impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {

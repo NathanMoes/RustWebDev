@@ -14,6 +14,7 @@ pub struct Question {
     pub tags: Option<HashSet<String>>,
 }
 
+/// A function component that displays a list of questions from the server backend
 #[function_component(QuestionList)]
 pub fn question_form() -> Html {
     let questions = use_state(Vec::<Question>::new);

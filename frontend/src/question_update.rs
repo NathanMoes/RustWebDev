@@ -19,6 +19,7 @@ pub struct QuestionFormProps {
     pub question_id: Option<u32>,
 }
 
+/// A function component form for updating a question
 #[function_component(QuestionUpdate)]
 pub fn question_update(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html {
     let history = use_history().unwrap();

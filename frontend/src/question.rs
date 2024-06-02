@@ -20,6 +20,7 @@ pub struct QuestionFormProps {
     pub question_id: Option<u32>,
 }
 
+/// A function component that displays a list of questions from the server backend. With a start end end parameter, it can also display a single question. By default it will only display one at the moment
 #[function_component(QuestionItem)]
 pub fn question(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html {
     let questions = use_state(Vec::<Question>::new);

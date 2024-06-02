@@ -5,11 +5,13 @@ use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{Deserialize, Serialize};
 use std::env::var;
 
+/// A struct representing an API response
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct APIResponse {
     message: String,
 }
 
+/// A struct representing a bad word
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct BadWord {
     original: String,
@@ -20,6 +22,7 @@ struct BadWord {
     replaced_len: i64,
 }
 
+/// A response from the bad_words API
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct BadWordsResponse {
     content: String,
@@ -28,6 +31,12 @@ struct BadWordsResponse {
     censored_content: String,
 }
 
+/// Runs a check for profanity on the given content using the bad_words API
+/// # Arguments
+/// * `content` - The content to check for profanity
+/// # Returns
+/// * `Ok(String)` - The censored content
+/// * `Err(ApiError)` - The error that occurred
 pub async fn check_profanity(content: String) -> Result<String, ApiError> {
     let bad_word_api_key = match var("API_LAYER_KEY") {
         Ok(key) => key,

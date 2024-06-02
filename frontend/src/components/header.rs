@@ -2,6 +2,7 @@ use crate::Route;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+/// A function component for the header of the application
 #[function_component(Header)]
 pub fn header() -> Html {
     html! {
