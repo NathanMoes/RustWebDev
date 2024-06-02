@@ -1,3 +1,9 @@
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+$background-color: #f8f9fa;
+$border-color: #dee2e6;
+$text-color: #333;
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -7,7 +13,7 @@ body {
 }
 
 h1 {
-  color: #333;
+  color: $text-color;
   margin-bottom: 20px;
   text-align: center;
 }
@@ -31,7 +37,7 @@ h1 {
 
     .id {
       font-weight: bold;
-      color: #007bff;
+      color: $primary-color;
     }
 
     .title {
@@ -50,7 +56,7 @@ h1 {
       justify-content: center;
 
       .tag {
-        background-color: #007bff;
+        background-color: $primary-color;
         color: #fff;
         padding: 4px 8px;
         border-radius: 4px;
@@ -99,7 +105,7 @@ h1 {
 
   .submit-button {
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: $primary-color;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -135,6 +141,101 @@ header {
       li {
         margin-right: 10px;
       }
+    }
+  }
+}
+
+.question {
+  background-color: $background-color;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid $border-color;
+  border-radius: 4px;
+
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: $primary-color;
+  }
+
+  .content {
+    margin-bottom: 20px;
+    color: $text-color;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+
+    .tag {
+      background-color: $secondary-color;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-start;
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:first-child {
+        background-color: $primary-color;
+        color: #fff;
+        margin-right: 10px;
+
+        &:hover {
+          background-color: darken($primary-color, 10%);
+        }
+      }
+
+      &:nth-child(2) {
+        background-color: #dc3545;
+        color: #fff;
+
+        &:hover {
+          background-color: darken(#dc3545, 10%);
+        }
+      }
+
+      &:nth-child(3) {
+        background-color: #33ff00;
+        color: #fff;
+        margin-left: 0.5em;
+
+        &:hover {
+          background-color: darken(#00f708, 10%);
+        }
+      }
+    }
+  }
+}
+
+.answer-list {
+  margin-top: 20px;
+
+  .answer {
+    background-color: $background-color;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+
+    .content {
+      color: $text-color;
     }
   }
 }

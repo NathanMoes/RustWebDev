@@ -136,6 +136,10 @@ impl AppState {
             .bind(id.0)
             .execute(&self.0)
             .await?;
+        sqlx::query(r#"DELETE FROM answers WHERE corresponding_question = $1;"#)
+            .bind(id.0)
+            .execute(&self.0)
+            .await?;
         Ok(tx.commit().await?)
     }
 
