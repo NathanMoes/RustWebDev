@@ -45,7 +45,7 @@ pub fn question_form() -> Html {
                 },
             };
 
-            let history_clone_for_async = history_clone.clone(); // Clone the history_clone value
+            let history_clone_for_async = history_clone.clone();
 
             wasm_bindgen_futures::spawn_local(async move {
                 let request = Request::post("http://localhost:8000/questions")
@@ -60,7 +60,6 @@ pub fn question_form() -> Html {
                             history_clone_for_async.push(Route::QuestionList);
                             web_sys::console::log_1(&"Question submitted successfully".into());
                         } else {
-                            // Handle error response
                             let error_message = response
                                 .text()
                                 .await
@@ -77,20 +76,20 @@ pub fn question_form() -> Html {
     };
 
     html! {
-        <form onsubmit={onsubmit}>
-            <div>
+        <form class="question-form" onsubmit={onsubmit}>
+            <div class="form-group">
                 <label for="title">{ "Title:" }</label>
-                <input type="text" id="title" oninput={move |e: InputEvent| title.set(e.target_unchecked_into::<HtmlInputElement>().value())} />
+                <input type="text" id="title" class="form-input" oninput={move |e: InputEvent| title.set(e.target_unchecked_into::<HtmlInputElement>().value())} />
             </div>
-            <div>
+            <div class="form-group">
                 <label for="content">{ "Content:" }</label>
-                <textarea id="content" oninput={move |e: InputEvent| content.set(e.target_unchecked_into::<HtmlInputElement>().value())}></textarea>
+                <textarea id="content" class="form-textarea" oninput={move |e: InputEvent| content.set(e.target_unchecked_into::<HtmlInputElement>().value())}></textarea>
             </div>
-            <div>
+            <div class="form-group">
                 <label for="tags">{ "Tags (comma-separated):" }</label>
-                <input type="text" id="tags" oninput={move |e: InputEvent| tags.set(e.target_unchecked_into::<HtmlInputElement>().value())} />
+                <input type="text" id="tags" class="form-input" oninput={move |e: InputEvent| tags.set(e.target_unchecked_into::<HtmlInputElement>().value())} />
             </div>
-            <button type="submit">{ "Submit" }</button>
+            <button type="submit" class="submit-button">{ "Submit" }</button>
         </form>
     }
 }

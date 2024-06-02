@@ -65,31 +65,35 @@ pub fn question_form() -> Html {
     }
 
     html! {
-        <div>
+        <>
             <h1>{ "Questions" }</h1>
-            <pre>{
-                questions.iter().map(|question| {
-                    let id = question.id;
-                    html! {
-                        <div class="question">
-                            <div class="id">{ question.id }</div>
-                            <div class="title">{ &question.title }</div>
-                            <div class="content">{ &question.content }</div>
-                            <div class="tags">{
-                                question.tags.as_ref().map(|tags| {
-                                    tags.iter().map(|tag| {
-                                        html! { <span class="tag">{ tag }</span> }
-                                    }).collect::<Html>()
-                                }).unwrap_or_else(|| html! {})
-                            }</div>
-                            <button>{ "Edit" }</button>
-                            <button onclick={move |_| {
-                                handle_delete_question(id);
-                            }}>{ "Delete" }</button>
-                        </div>
-                    }
-                }).collect::<Html>()
-            }</pre>
-        </div>
+            <div class="question-list">
+                {
+                    questions.iter().map(|question| {
+                        let id = question.id;
+                        html! {
+                            <div class="question">
+                                <div class="id">{ question.id }</div>
+                                <div class="title">{ &question.title }</div>
+                                <div class="content">{ &question.content }</div>
+                                <div class="tags">{
+                                    question.tags.as_ref().map(|tags| {
+                                        tags.iter().map(|tag| {
+                                            html! { <span class="tag">{ tag }</span> }
+                                        }).collect::<Html>()
+                                    }).unwrap_or_else(|| html! {})
+                                }</div>
+                                <div class="actions">
+                                    <button>{ "Edit" }</button>
+                                    <button onclick={move |_| {
+                                        handle_delete_question(id);
+                                    }}>{ "Delete" }</button>
+                                </div>
+                            </div>
+                        }
+                    }).collect::<Html>()
+                }
+            </div>
+        </>
     }
 }
