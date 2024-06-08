@@ -169,7 +169,7 @@ pub fn question(&QuestionFormProps { question_id }: &QuestionFormProps) -> Html 
                                 <div class="answer">
                                     <div class="content">{ &answer.content }
                                         <div class="actions">
-                                            <button>{ "Edit" }</button>
+                                            // <button>{ "Edit" }</button>
                                             <button  onclick={move |_|{
                                                 handle_delete_answer(id);
                                             }}>{ "Delete" }</button>
